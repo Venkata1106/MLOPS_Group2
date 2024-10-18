@@ -1,0 +1,20 @@
+# Ignore Python compiled files
+__pycache__/
+*.py[cod]
+*.pyo
+*.pkl
+
+# Ignore environment files
+.env
+.venv/
+venv/
+ENV/
+env/
+
+# Ignore data files
+data/raw/
+data/processed/
+
+# Ignore OS-specific files
+.DS_Store
+Thumbs.db
