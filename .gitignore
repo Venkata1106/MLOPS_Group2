@@ -1,7 +1,7 @@
-# Python
+echo "# Python
 __pycache__/
 *.py[cod]
-*.class
+*$py.class
 .env
 .venv
 env/
@@ -28,4 +28,4 @@ smtp.env
 *.swp
 
 # OS
-.DS_Store
+.DS_Store" > .gitignore
