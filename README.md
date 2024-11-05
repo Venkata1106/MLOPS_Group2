@@ -165,8 +165,8 @@ main/
 
 The pipeline is designed to manage stock market data from acquisition to analysis, incorporating several stages to ensure the reliability and accuracy of predictions. Here’s an overview:
 
-![DAG](images/DAG.jpeg)
-![Gantt](images/Gantt.jpeg)
+![DAG](Images/DAG.jpeg)
+![Gantt](Images/Gantt.jpeg)
 
 ## Scripts
 
