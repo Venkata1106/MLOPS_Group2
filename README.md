@@ -4,7 +4,7 @@
 [![Docker](https://img.shields.io/badge/Docker-Compatible-brightgreen.svg)](https://www.docker.com/)
 [![Apache Airflow](https://img.shields.io/badge/Airflow-Pipeline-yellowgreen.svg)](https://airflow.apache.org/)
 
-- [Vekata Anantha Reddy Arikatla](https://github.com/Venkata1106)
+- [Venkata Anantha Reddy Arikatla](https://github.com/Venkata1106)
 - [Dheeraj Kumar Goli](https://github.com/dheeraj932)
 - [Shubhang Yadav Sandaveni](https://github.com/sandavenishubhang)
 - [Manasi Bondalapati](https://github.com/thunderblu)
