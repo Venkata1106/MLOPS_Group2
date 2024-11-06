@@ -1,4 +1,4 @@
-# Stock Market Price Prediction
+# Stock Price Prediction
 
 [![Python](https://img.shields.io/badge/Python-3.x-blue.svg)](https://www.python.org/)
 [![Docker](https://img.shields.io/badge/Docker-Compatible-brightgreen.svg)](https://www.docker.com/)
