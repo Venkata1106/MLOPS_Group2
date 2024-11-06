@@ -137,6 +137,7 @@ main/
 ├── config/                        # Configuration files
 ├── dags/                          # Airflow DAGs
 │   └── stock_prediction_dag.py    # Main DAG for stock prediction
+├── Images/                        # Saved images
 ├── data/                          # Main data directory
 │   ├── raw/                       # Raw data files (e.g., AAPL.csv, AMZN.csv)
 │   ├── processed/                 # Preprocessed data (e.g., processed_AAPL.csv)
