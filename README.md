@@ -6,7 +6,7 @@
 
 - [Vekata Anantha Reddy Arikatla](https://github.com/Venkata1106)
 - [Dheeraj Kumar Goli](https://github.com/dheeraj932)
-- [Shubhang Yadav Sandaveni]()
+- [Shubhang Yadav Sandaveni](https://github.com/sandavenishubhang)
 - [Manasi Bondalapati](https://github.com/thunderblu)
 - [Sachi Hareshkumar Patel](https://github.com/Sachiprogrammer)
 - [Pranav Pinjarla](https://github.com/pranav10510)
