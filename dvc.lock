@@ -1,0 +1,27 @@
+schema: '2.0'
+stages:
+  data_acquisition:
+    cmd: python scripts/data_acquisition.py
+    deps:
+    - path: scripts/data_acquisition.py
+      hash: md5
+      md5: 2372e988818ed7c95e8a46f6bababadc
+      size: 1304
+      isexec: true
+    params:
+      params.yaml:
+        data_acquisition:
+          start_date: '2020-01-01'
+          end_date: '2024-11-12'
+          tickers:
+          - AAPL
+          - GOOGL
+          - MSFT
+          - AMZN
+          - TSLA
+    outs:
+    - path: data/raw
+      hash: md5
+      md5: 93bfe673cf83d5ef41d948e40bf3e0da.dir
+      size: 401826
+      nfiles: 3
