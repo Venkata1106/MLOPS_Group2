@@ -1,0 +1,20 @@
+config:
+  data_acquisition:
+    start_date: "2020-01-01"             # Starting date for data acquisition
+    end_date: "2024-01-01"               # Ending date for data acquisition
+    tickers: ["AAPL", "GOOGL", "MSFT"]   # List of stock tickers
+    output_folder: "data/raw"            # Output folder for raw data
+
+  preprocessing:
+    scaling_method: "standard"           # Scaling method for preprocessing
+    impute_missing: true                 # Option to impute missing values
+    output_folder: "data/processed"      # Directory to save processed data
+
+  validation:
+    validation_metric: "accuracy"        # Metric for validation (e.g., "accuracy")
+    threshold: 0.8                       # Minimum acceptable threshold for validation
+    report_path: "metrics/validation_metrics.json"  # Path to save validation metrics
+
+  bias_detection:
+    threshold: 0.1                       # Bias detection threshold
+    groups: ["sector", "region"]         # Data groups for bias analysis
