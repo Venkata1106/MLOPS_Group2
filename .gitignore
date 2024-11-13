@@ -32,3 +32,5 @@ smtp.env
 
 # OS
 .DS_Store
+
+!.dvc

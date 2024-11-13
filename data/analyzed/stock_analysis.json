@@ -1,0 +1,180 @@
+{
+    "summary_statistics": {
+        "Open": {
+            "mean": 178.83920222060897,
+            "median": 162.8000030517578,
+            "std": 83.70562113923525,
+            "min": 40.55381301879883,
+            "max": 430.8287878417969
+        },
+        "High": {
+            "mean": 181.3698570602903,
+            "median": 164.7832489013672,
+            "std": 84.66931427610184,
+            "min": 43.47466705322265,
+            "max": 432.95200195312503
+        },
+        "Low": {
+            "mean": 176.22455029530272,
+            "median": 160.56500244140625,
+            "std": 82.5206256391205,
+            "min": 40.357332153320314,
+            "max": 426.59640625
+        },
+        "Close": {
+            "mean": 178.8665256785955,
+            "median": 162.72000122070312,
+            "std": 83.60410080375799,
+            "min": 42.33464157104492,
+            "max": 430.3176049804687
+        },
+        "Volume": {
+            "mean": -6.662639444517447e-17,
+            "median": -0.2736798735928324,
+            "std": 0.9999511563728436,
+            "min": -1.0132477302832354,
+            "max": 14.087300693905032
+        }
+    },
+    "correlation_analysis": {
+        "Open": {
+            "Open": 1.0,
+            "High": 0.9994550022865809,
+            "Low": 0.9993295021959608,
+            "Close": 0.9987955778883246,
+            "Volume": -0.23027804010857794
+        },
+        "High": {
+            "Open": 0.9994550022865809,
+            "High": 1.0,
+            "Low": 0.9990112733904729,
+            "Close": 0.9993545144623054,
+            "Volume": -0.2194038226057673
+        },
+        "Low": {
+            "Open": 0.9993295021959608,
+            "High": 0.9990112733904729,
+            "Low": 1.0,
+            "Close": 0.999407305110823,
+            "Volume": -0.2412290274202918
+        },
+        "Close": {
+            "Open": 0.9987955778883246,
+            "High": 0.9993545144623054,
+            "Low": 0.999407305110823,
+            "Close": 1.0,
+            "Volume": -0.2293099937441715
+        },
+        "Volume": {
+            "Open": -0.23027804010857794,
+            "High": -0.2194038226057673,
+            "Low": -0.2412290274202918,
+            "Close": -0.2293099937441715,
+            "Volume": 1.0
+        }
+    },
+    "trend_analysis": {
+        "AMZN": {
+            "price_trend": 114.00950622558591,
+            "avg_daily_return": 0.0009125815139612423,
+            "trading_days": 1225
+        },
+        "MSFT": {
+            "price_trend": 262.4100036621094,
+            "avg_daily_return": 0.0009641404781794107,
+            "trading_days": 1225
+        },
+        "processed_TSLA": {
+            "price_trend": 286.1553486633301,
+            "avg_daily_return": 0.002481793738201846,
+            "trading_days": 1225
+        },
+        "processed_AAPL": {
+            "price_trend": 38.5899963378906,
+            "avg_daily_return": 0.0010012322284806026,
+            "trading_days": 219
+        },
+        "processed_GOOGL": {
+            "price_trend": 113.18599700927734,
+            "avg_daily_return": 0.0009557740877296617,
+            "trading_days": 1225
+        },
+        "AAPL": {
+            "price_trend": 149.14249420166013,
+            "avg_daily_return": 0.0010460264236983156,
+            "trading_days": 1225
+        },
+        "GOOGL": {
+            "price_trend": 113.18599700927734,
+            "avg_daily_return": 0.0010059432067165421,
+            "trading_days": 1225
+        },
+        "processed_AMZN": {
+            "price_trend": 114.00950622558591,
+            "avg_daily_return": 0.0009125815139612423,
+            "trading_days": 1225
+        },
+        "TSLA": {
+            "price_trend": 278.7052978515625,
+            "avg_daily_return": 0.0022989570653930546,
+            "trading_days": 1225
+        },
+        "processed_MSFT": {
+            "price_trend": 52.160003662109375,
+            "avg_daily_return": 0.0006632931007973482,
+            "trading_days": 219
+        }
+    },
+    "volatility_analysis": {
+        "AMZN": {
+            "daily_volatility": 0.02275084742807195,
+            "annualized_volatility": 0.361158506463911,
+            "max_drawdown": -0.5614526325328263
+        },
+        "MSFT": {
+            "daily_volatility": 0.019160757306838895,
+            "annualized_volatility": 0.3041675925933567,
+            "max_drawdown": -0.37556466105038605
+        },
+        "processed_TSLA": {
+            "daily_volatility": 0.04012079198064433,
+            "annualized_volatility": 0.6368978279024368,
+            "max_drawdown": -0.736322174421912
+        },
+        "processed_AAPL": {
+            "daily_volatility": 0.01466545316123034,
+            "annualized_volatility": 0.2328068515720891,
+            "max_drawdown": -0.15462646689363316
+        },
+        "processed_GOOGL": {
+            "daily_volatility": 0.020510810245230708,
+            "annualized_volatility": 0.3255990185838971,
+            "max_drawdown": -0.4432005141440532
+        },
+        "AAPL": {
+            "daily_volatility": 0.020234075379300335,
+            "annualized_volatility": 0.3212059887777817,
+            "max_drawdown": -0.3142726566427494
+        },
+        "GOOGL": {
+            "daily_volatility": 0.02043303863285421,
+            "annualized_volatility": 0.32436443251144476,
+            "max_drawdown": -0.4432005141440532
+        },
+        "processed_AMZN": {
+            "daily_volatility": 0.02275084742807195,
+            "annualized_volatility": 0.361158506463911,
+            "max_drawdown": -0.5614526325328263
+        },
+        "TSLA": {
+            "daily_volatility": 0.038823230557359256,
+            "annualized_volatility": 0.6162996788813768,
+            "max_drawdown": -0.736322174421912
+        },
+        "processed_MSFT": {
+            "daily_volatility": 0.011440753276719376,
+            "annualized_volatility": 0.18161632788868082,
+            "max_drawdown": -0.09325292638111286
+        }
+    }
+}
