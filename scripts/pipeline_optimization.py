@@ -4,6 +4,7 @@ from datetime import datetime, timedelta
 import logging
 from typing import List, Dict, Any, Optional
 import sys
+import yaml
 
 # Add project root to Python path
 current_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -56,7 +57,10 @@ class StockPipeline:
         self.logger.info("Starting data preprocessing...")
         
         try:
-            process_and_save_all_data(self.raw_dir, self.processed_dir)
+            with open("params.yaml") as f:
+                params = yaml.safe_load(f)
+            
+            process_and_save_all_data(self.raw_dir, self.processed_dir, params)
             self.logger.info(f"Data preprocessing completed. Results saved to {self.processed_dir}")
         except Exception as e:
             self.logger.error(f"Data preprocessing failed: {str(e)}")

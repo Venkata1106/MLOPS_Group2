@@ -3,8 +3,17 @@ stages:
     cmd: python scripts/data_acquisition.py
     deps:
       - scripts/data_acquisition.py
-    metrics: []
     outs:
       - data/raw
     params:
       - data_acquisition
+
+  preprocessing:
+    cmd: python scripts/data_preprocessing.py
+    deps:
+      - scripts/data_preprocessing.py
+      - data/raw  # Dependency on the raw data output from data_acquisition
+    outs:
+      - data/processed  # Output directory for processed data
+    params:
+      - preprocessing  # Link to preprocessing parameters in params.yaml

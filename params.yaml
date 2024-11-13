@@ -7,3 +7,12 @@ data_acquisition:
     - MSFT
     - AMZN
     - TSLA
+
+preprocessing:
+  moving_average_windows:
+    - 5
+    - 20
+  fill_method: 'ffill'  # Fill method for NaN values
+  columns_required:
+    - Date
+    - Close
