@@ -1,40 +1,40 @@
 stages:
-  bias_detection:
-    cmd: python scripts/bias_detection.py
-    deps:
-    - scripts/bias_detection.py
-    - data/processed
-    metrics:
-    - metrics/bias_metrics.json
-    outs: []
-    params:
-    - config/params.yaml:bias_detection
   data_acquisition:
     cmd: python scripts/data_acquisition.py
     deps:
-    - scripts/data_acquisition.py
-    metrics: []
+      - scripts/data_acquisition.py
     outs:
-    - data/raw
+      - data/raw
     params:
-    - config/params.yaml:data_acquisition
+      - config:data_acquisition
+
   data_preprocessing:
     cmd: python scripts/data_preprocessing.py
     deps:
-    - scripts/data_preprocessing.py
-    - data/raw
-    metrics: []
+      - scripts/data_preprocessing.py
+      - data/raw
     outs:
-    - data/processed
+      - data/processed
     params:
-    - config/params.yaml:preprocessing
+      - config:preprocessing
+
   data_validation:
     cmd: python scripts/data_validation.py
     deps:
-    - scripts/data_validation.py
-    - data/processed
+      - scripts/data_validation.py
+      - data/processed
     metrics:
-    - metrics/validation_metrics.json
-    outs: []
+      - metrics/validation_metrics.json
     params:
-    - config/params.yaml:validation
+      - config:validation
+
+  bias_detection:
+    cmd: python scripts/bias_detection.py
+    deps:
+      - scripts/bias_detection.py
+      - data/processed
+    metrics:
+      - metrics/bias_metrics.json
+    params:
+      - config:bias_detection
+
