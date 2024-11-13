@@ -1,0 +1,34 @@
+   nano .gitignore
+echo "# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.env
+.venv
+env/
+venv/
+
+# Airflow
+airflow.cfg
+airflow.db
+airflow-webserver.pid
+   rm -rf .dvc
+   rm -rf .dvc
+logs/
+unittests.cfg
+webserver_config.py
+
+# Environment variables
+.env
+smtp.env
+
+# Docker
+.docker/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+
+# OS
+.DS_Store
