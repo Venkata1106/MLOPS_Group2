@@ -1,0 +1,10 @@
+stages:
+  data_acquisition:
+    cmd: python scripts/data_acquisition.py
+    deps:
+      - scripts/data_acquisition.py
+    metrics: []
+    outs:
+      - data/raw
+    params:
+      - data_acquisition
