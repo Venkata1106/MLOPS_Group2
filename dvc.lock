@@ -25,3 +25,32 @@ stages:
       md5: 93bfe673cf83d5ef41d948e40bf3e0da.dir
       size: 401826
       nfiles: 3
+  preprocessing:
+    cmd: python scripts/data_preprocessing.py
+    deps:
+    - path: data/raw
+      hash: md5
+      md5: 93bfe673cf83d5ef41d948e40bf3e0da.dir
+      size: 401826
+      nfiles: 3
+    - path: scripts/data_preprocessing.py
+      hash: md5
+      md5: 87e6533cbc6629a24c949691d974f0b3
+      size: 1598
+      isexec: true
+    params:
+      params.yaml:
+        preprocessing:
+          moving_average_windows:
+          - 5
+          - 20
+          fill_method: ffill
+          columns_required:
+          - Date
+          - Close
+    outs:
+    - path: data/processed
+      hash: md5
+      md5: d422534bfb1fce77251b45e180e3b20c.dir
+      size: 534281
+      nfiles: 3
