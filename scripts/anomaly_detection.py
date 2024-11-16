@@ -98,7 +98,29 @@ class AnomalyDetector:
         output_file = os.path.join(output_folder, 'anomalies.json')
         with open(output_file, 'w') as f:
             json.dump(anomalies, f, indent=4)
-    
+        
+        # Save each type of anomaly to a separate CSV file
+        for anomaly_type, anomaly_data in anomalies.items():
+            # Create a list to store all records
+            records = []
+            
+            # Process each symbol's anomalies
+            for symbol, data in anomaly_data.items():
+                for date, price, z_score in zip(data['dates'], data['prices' if 'prices' in data else 'volumes' if 'volumes' in data else 'volatility'], data['z_scores']):
+                    records.append({
+                    'Symbol': symbol,
+                    'Date': date,
+                    'Value': price,
+                    'Z_Score': z_score
+                })
+        
+        # Convert to DataFrame and save
+        if records:
+            df = pd.DataFrame(records)
+            output_file = os.path.join(output_folder, f'{anomaly_type}.csv')
+            df.to_csv(output_file, index=False)
+            self.logger.info(f"Saved {anomaly_type} to {output_file}")
+
     def _detect_anomalies(self):
         """Detect anomalies in the stock data"""
         anomalies = {

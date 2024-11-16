@@ -3,6 +3,9 @@ The Airflow DAG for Stock Prediction Pipeline
 """
 import logging
 import sys
+import os
+import joblib
+import json
 
 # Configure basic logging
 logging.basicConfig(
@@ -24,6 +27,8 @@ import os
 import shutil
 from airflow.utils.email import send_email_smtp as send_email
 from airflow.hooks.base import BaseHook
+from src.model.model_development import StockPredictionModel
+from src.model.config import MODEL_CONFIG
 
 # Add scripts directory to path
 AIRFLOW_HOME = os.getenv('AIRFLOW_HOME', '/opt/airflow')
@@ -56,7 +61,10 @@ DIRS = {
     'validated': os.path.join(DATA_DIR, 'validated'),
     'mitigated': os.path.join(DATA_DIR, 'mitigated'),
     'analyzed': os.path.join(DATA_DIR, 'analyzed'),
-    'anomalies': os.path.join(DATA_DIR, 'anomalies')
+    'anomalies': os.path.join(DATA_DIR, 'anomalies'),
+    'bias': os.path.join(DATA_DIR, 'bias'),
+    'models': os.path.join(DATA_DIR, 'models'),
+    'model_metrics': os.path.join(DATA_DIR, 'model_metrics'),
 }
 
 # Create directories if they don't exist
@@ -119,6 +127,7 @@ def detect_bias(**context):
     logger.info("Starting bias detection")
     try:
         input_folder = DIRS['validated']
+        output_folder = DIRS['bias']
         logger.info(f"Processing data from: {input_folder}")
         
         # Initialize analyzer with data
@@ -129,9 +138,13 @@ def detect_bias(**context):
         
         # Generate report
         report = analyzer.generate_report()
+
+        # Save results
+        logger.info(f"Saving bias report to: {output_folder}")
+        analyzer.save_results(report, output_folder)
         
         logger.info("Bias detection completed successfully")
-        return report
+        return {'status': 'success', 'bias_report': report}
         
     except Exception as e:
         logger.error(f"Error in bias detection: {str(e)}")
@@ -212,6 +225,175 @@ def detect_anomalies(**context):
         logger.error(f"Error in anomaly detection: {str(e)}")
         raise
 
+# Standard library imports
+import os
+import logging
+from datetime import datetime, timedelta
+
+# Third-party imports
+import pandas as pd
+import numpy as np
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import mean_squared_error, r2_score
+
+# Local imports
+from src.model.model_development import StockPredictionModel
+
+# Constants for stock symbols
+SYMBOLS = [
+    'AAPL', 'ADBE', 'AMZN', 'CSCO', 'GOOGL',
+    'META', 'MSFT', 'NVDA', 'PEP', 'TSLA'
+]
+
+# Constants for file paths
+BASE_PATH = '/opt/airflow'
+DATA_PATH = os.path.join(BASE_PATH, 'data')
+MITIGATED_PATH = os.path.join(DATA_PATH, 'mitigated')
+MODEL_PATH = os.path.join(BASE_PATH, 'models')
+
+# Configuration
+config = {
+    'data_path': DATA_PATH,
+    'model_path': MODEL_PATH,
+    'model_params': {
+        'n_estimators': 100,
+        'max_depth': 10,
+        'random_state': 42
+    },
+    'training': {
+        'test_size': 0.2,
+        'random_state': 42,
+        'features': ['Date', 'Open', 'High', 'Low', 'Volume', 'Returns', 'MA5', 'MA20', 'Volatility'],
+        'target': 'Close'
+    }
+}
+
+# Make sure model directory exists
+os.makedirs(MODEL_PATH, exist_ok=True)
+
+def train_model(**context):
+    """Train models for all stocks"""
+    results = {}
+    
+    # Debug paths
+    logging.info(f"MODEL_PATH exists: {os.path.exists(MODEL_PATH)}")
+    logging.info(f"MODEL_PATH permissions: {oct(os.stat(MODEL_PATH).st_mode)[-3:]}")
+    
+    for symbol in SYMBOLS:
+        try:
+            logging.info(f"Training model for {symbol}")
+            file_path = os.path.join(MITIGATED_PATH, f'mitigated_{symbol}.csv')
+            model_path = os.path.join(MODEL_PATH, f'{symbol}_model.pkl')
+            
+            if not os.path.exists(file_path):
+                logging.error(f"File not found: {file_path}")
+                results[symbol] = {
+                    'status': 'failed',
+                    'error': f"Data file not found: {file_path}"
+                }
+                continue
+            
+            # Load and prepare data
+            data = pd.read_csv(file_path)
+            logging.info(f"Successfully loaded data for {symbol}: {len(data)} records")
+            
+            # Train model
+            try:
+                model = StockPredictionModel(
+                    config={
+                        'model_params': {
+                            'n_estimators': 100,
+                            'max_depth': 10,
+                            'random_state': 42
+                        },
+                        'training': {
+                            'test_size': 0.2,
+                            'random_state': 42,
+                            'features': ['Day','Month','Year','Day_of_Week','Open','High','Low','Volume','Returns','MA5','MA20','Volatility'],
+                            'target': 'Close'
+                        },
+                        'output_path': model_path  # Add this line
+                    }
+                )
+                
+                result = model.train_model(data)
+
+                logging.info(result['metrics'])
+                if result.get('status') == 'success':
+                    # Save model
+                    try:
+                        joblib.dump(result['metrics'], model_path)
+                        logging.info(f"Model saved successfully to {model_path}")
+                        results[symbol] = {
+                            'status': 'success',
+                            'metrics': result.get('metrics', {}),
+                            'model_path': model_path
+                        }
+                    except Exception as e:
+                        logging.error(f"Error saving model for {symbol}: {str(e)}")
+                        results[symbol] = {
+                            'status': 'failed',
+                            'error': f"Model training succeeded but saving failed: {str(e)}"
+                        }
+                else:
+                    results[symbol] = {
+                        'status': 'failed',
+                        'error': result.get('error', 'Unknown error during training')
+                    }
+                    
+            except Exception as e:
+                logging.error(f"Error training model for {symbol}: {str(e)}")
+                logging.error("Full traceback: ", exc_info=True)
+                results[symbol] = {
+                    'status': 'failed',
+                    'error': str(e)
+                }
+                
+        except Exception as e:
+            logging.error(f"Error processing {symbol}: {str(e)}")
+            logging.error("Full traceback: ", exc_info=True)
+            results[symbol] = {
+                'status': 'failed',
+                'error': str(e)
+            }
+    
+    return results
+
+def evaluate_model_bias(**context):
+    """Evaluate model bias"""
+    logger.info("Starting model bias evaluation")
+    
+    # Use the same config as training
+    model_config = {
+        'model_params': MODEL_CONFIG['model_params'],
+        'training': MODEL_CONFIG['training'],
+        'data_path': DATA_PATH,
+        'output_path': MODEL_PATH
+    }
+    
+    results = {}
+    
+    for symbol in SYMBOLS:
+        try:
+            logger.info(f"Evaluating bias for {symbol} model")
+            
+            # Initialize model with config
+            model = StockPredictionModel(config=model_config)
+            
+            # Evaluate bias
+            bias_results = model.evaluate_model_bias(symbol)
+            results[symbol] = bias_results
+            
+        except Exception as e:
+            logger.error(f"Error evaluating bias for {symbol}: {str(e)}")
+            logger.error("Full traceback: ", exc_info=True)
+            results[symbol] = {
+                'status': 'failed',
+                'error': str(e)
+            }
+    
+    return results
+
 # Email templates
 EMAIL_SUCCESS_TEMPLATE = """
 <h3>Stock Prediction Pipeline completed successfully!</h3>
@@ -226,6 +408,8 @@ EMAIL_SUCCESS_TEMPLATE = """
     <li>Bias Detection and Mitigation: Completed</li>
     <li>Statistical Analysis: Completed</li>
     <li>Anomaly Detection: Completed</li>
+    <li>Model Training: Completed</li>
+    <li>Model Bias Evaluation: Completed</li>
 </ul>
 """
 
@@ -277,7 +461,7 @@ with DAG(
         task_id='acquire_data',
         python_callable=fetch_stock_data,
         op_kwargs={
-            'tickers': ["AAPL", "GOOGL", "TSLA", "MSFT", "AMZN"],
+            'tickers': ["AAPL", "GOOGL", "TSLA", "MSFT", "AMZN", "META", "NVDA", "ADBE", "CSCO", "PEP"],
             'start_date': "2020-01-01",
             'end_date': "{{ ds }}",
             'output_folder': DIRS['raw']
@@ -329,6 +513,20 @@ with DAG(
         provide_context=True
     )
 
+    # Task 8: Train Model
+    train_model_task = PythonOperator(
+        task_id='train_model',
+        python_callable=train_model,
+        provide_context=True
+    )
+
+    # Task 9: Evaluate Model Bias
+    evaluate_model_bias_task = PythonOperator(
+        task_id='evaluate_model_bias',
+        python_callable=evaluate_model_bias,
+        provide_context=True
+    )
+
     # Success Email
     email_success = EmailOperator(
         task_id='send_success_email',
@@ -353,11 +551,11 @@ with DAG(
     )
 
     # Define task dependencies
-    start >> acquire_data >> preprocess_data >> validate_data >> detect_bias_task
+    start >> acquire_data >> preprocess_data >> validate_data >> [detect_bias_task, mitigate_bias_task]
     
-    detect_bias_task >> mitigate_bias_task >> [calculate_statistics_task, detect_anomalies_task]
-    
-    [calculate_statistics_task, detect_anomalies_task] >> email_success
+    mitigate_bias_task >> [calculate_statistics_task, detect_anomalies_task, train_model_task]
+    train_model_task >> evaluate_model_bias_task
+    [calculate_statistics_task, detect_anomalies_task, evaluate_model_bias_task] >> email_success
     
     [email_success, email_failure] >> end
 

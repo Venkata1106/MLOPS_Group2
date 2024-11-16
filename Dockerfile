@@ -19,10 +19,15 @@ COPY requirements.txt /opt/airflow/requirements.txt
 RUN pip install --no-cache-dir -r /opt/airflow/requirements.txt
 
 # Create necessary directories
-RUN mkdir -p /opt/airflow/stock_prediction/data/{raw,processed,validated,mitigated,analyzed,anomalies}
+RUN mkdir -p /opt/airflow/stock_prediction/data/{raw,processed,validated,mitigated,analyzed,anomalies,bias} \
+    && mkdir -p /opt/airflow/src/model
+
+# Copy model training code
+COPY src/model /opt/airflow/src/model
 
 # Set working directory
 WORKDIR /opt/airflow
 
 # Set environment variables
 ENV PYTHONPATH=/opt/airflow
+ENV MLFLOW_TRACKING_URI=http://mlflow:5000

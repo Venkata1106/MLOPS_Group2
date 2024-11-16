@@ -40,7 +40,8 @@ services:
       - ./scripts:/opt/airflow/scripts
       - ./logs:/opt/airflow/logs
       - ./plugins:/opt/airflow/plugins
-      - ./data:/opt/airflow/stock_prediction/data
+      - ./data:/opt/airflow/data
+      - ./models:/opt/airflow/models
     ports:
       - "8080:8080"
       - "587:587"
@@ -54,6 +55,7 @@ services:
       - postgres
     env_file:
       - smtp.env
+    user: "${AIRFLOW_UID:-50000}:${AIRFLOW_GID:-50000}"
 
   airflow-scheduler:
     build: .
@@ -69,13 +71,15 @@ services:
       - ./scripts:/opt/airflow/scripts
       - ./logs:/opt/airflow/logs
       - ./plugins:/opt/airflow/plugins
-      - ./data:/opt/airflow/stock_prediction/data
+      - ./data:/opt/airflow/data
+      - ./models:/opt/airflow/models
     command: scheduler
     depends_on:
       - airflow-webserver
       - postgres
     env_file:
       - smtp.env
+    user: "${AIRFLOW_UID:-50000}:${AIRFLOW_GID:-50000}"
 
 volumes:
   postgres_data:

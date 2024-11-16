@@ -2,7 +2,7 @@ import pandas as pd
 import numpy as np
 import os
 from datetime import datetime
-
+import json
 class BiasAnalyzer:
     """Class for detecting bias in stock market data"""
     
@@ -47,6 +47,15 @@ class BiasAnalyzer:
         }
         
         return report
+    
+    def save_results(self, bias_report, output_folder):
+        """Save bias analysis results"""
+        if not os.path.exists(output_folder):
+            os.makedirs(output_folder)
+            
+        output_file = os.path.join(output_folder, 'bias_analysis.json')
+        with open(output_file, 'w') as f:
+            json.dump(bias_report, f, indent=4)
     
     def _analyze_price_distribution(self):
         """Analyze price distribution for bias"""
