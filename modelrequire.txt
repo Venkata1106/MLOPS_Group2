@@ -11,3 +11,4 @@ joblib
 mlflow
 shap
 lime
+pytest
