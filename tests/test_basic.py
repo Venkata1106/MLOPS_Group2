@@ -1,5 +1,5 @@
 def test_basic():
-    """Basic test to verify pytest is working"""
+    """Basic test to ensure pytest is working"""
     assert True
 
 def test_imports():
