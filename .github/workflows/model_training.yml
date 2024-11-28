@@ -1,0 +1,171 @@
+name: Model Training Pipeline
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'models/**'
+      - 'data/**'
+      - 'config/**'
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+env:
+  GOOGLE_APPLICATION_CREDENTIALS: ${{ secrets.GOOGLE_APPLICATION_CREDENTIALS }}
+
+jobs:
+  train-and-validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.9'
+
+      - name: Setup Google Cloud CLI
+        uses: google-github-actions/setup-gcloud@v0
+        with:
+          service_account_key: ${{ secrets.GOOGLE_APPLICATION_CREDENTIALS }}
+          export_default_credentials: true
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run tests
+        run: python -m pytest tests/
+
+      - name: Train model
+        id: training
+        run: python -m models.train
+        continue-on-error: true
+
+      - name: Validate model
+        if: steps.training.outcome == 'success'
+        id: validation
+        run: |
+          echo "Starting model validation..."
+          python scripts/validate_model.py
+          validation_status=$?
+          
+          if [ $validation_status -eq 0 ]; then
+            echo "Validation passed successfully!"
+            echo "validation_passed=true" >> $GITHUB_ENV
+          else
+            echo "Validation failed!"
+            echo "validation_passed=false" >> $GITHUB_ENV
+          fi
+        continue-on-error: true
+
+      - name: Check validation status
+        if: steps.validation.outcome == 'success'
+        run: |
+          if [ "${{ env.validation_passed }}" != "true" ]; then
+            echo "Model validation did not meet thresholds"
+            exit 1
+          fi
+
+      - name: Log status
+        if: always()
+        run: |
+          if [ "${{ steps.training.outcome }}" == "success" ]; then
+            echo "Model training completed successfully"
+          else
+            echo "Model training failed"
+          fi
+          
+          if [ "${{ steps.validation.outcome }}" == "success" ]; then
+            echo "Model validation passed"
+          else
+            echo "Model validation failed"
+          fi
+
+      - name: Check for bias
+        if: steps.validation.outcome == 'success'
+        id: bias_check
+        run: |
+          echo "Starting bias detection..."
+          python scripts/check_bias.py
+          bias_status=$?
+          
+          if [ $bias_status -eq 0 ]; then
+            echo "No significant bias detected!"
+            echo "bias_check_passed=true" >> $GITHUB_ENV
+          else
+            echo "Significant bias detected!"
+            echo "bias_check_passed=false" >> $GITHUB_ENV
+          fi
+        continue-on-error: true
+
+      - name: Check bias status
+        if: steps.bias_check.outcome == 'success'
+        run: |
+          if [ "${{ env.bias_check_passed }}" != "true" ]; then
+            echo "Model failed bias checks"
+            exit 1
+          fi
+
+      - name: Push to Model Registry
+        if: |
+          steps.validation.outcome == 'success' && 
+          steps.bias_check.outcome == 'success' &&
+          env.bias_check_passed == 'true' &&
+          env.validation_passed == 'true'
+        id: model_push
+        run: |
+          echo "Pushing model to registry..."
+          python scripts/deploy_model.py
+          push_status=$?
+          
+          if [ $push_status -eq 0 ]; then
+            echo "Successfully pushed model to registry!"
+            echo "model_pushed=true" >> $GITHUB_ENV
+          else
+            echo "Failed to push model to registry!"
+            echo "model_pushed=false" >> $GITHUB_ENV
+            exit 1
+          fi
+
+      - name: Verify Deployment
+        if: steps.model_push.outcome == 'success'
+        run: |
+          if [ "${{ env.model_pushed }}" != "true" ]; then
+            echo "Model deployment failed"
+            exit 1
+          fi
+
+      - name: Send Notifications
+        if: always()  # Run this step regardless of previous step outcomes
+        env:
+          EMAIL_APP_PASSWORD: ${{ secrets.EMAIL_APP_PASSWORD }}
+        run: |
+          # Collect status from previous steps
+          echo "Sending pipeline status notification..."
+          python scripts/send_notifications.py
+
+      - name: Monitor and Rollback Check
+        if: steps.model_push.outcome == 'success'
+        id: rollback_check
+        run: |
+          echo "Starting model monitoring and rollback check..."
+          python scripts/rollback_model.py
+          rollback_status=$?
+          
+          if [ $rollback_status -eq 0 ]; then
+            echo "Model stable or rollback successful"
+            echo "model_stable=true" >> $GITHUB_ENV
+          else
+            echo "Rollback check failed"
+            echo "model_stable=false" >> $GITHUB_ENV
+            exit 1
+          fi
+
+      - name: Send Rollback Notification
+        if: steps.rollback_check.outcome == 'success' && env.model_stable == 'false'
+        run: |
+          python scripts/send_notifications.py --event="rollback_executed"
