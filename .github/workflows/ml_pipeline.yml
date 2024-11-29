@@ -32,6 +32,20 @@ jobs:
           service_account_key: ${{ secrets.GOOGLE_APPLICATION_CREDENTIALS }}
           export_default_credentials: true
 
+      - name: Setup Credentials
+        run: |
+          mkdir -p credentials
+          echo '${{ secrets.GOOGLE_APPLICATION_CREDENTIALS }}' > credentials/latest.json
+          chmod 600 credentials/latest.json  # Set proper permissions
+
+      - name: Verify Credentials
+        run: |
+          if [ ! -f "credentials/latest.json" ]; then
+            echo "Credentials file not found!"
+            exit 1
+          fi
+          echo "Credentials file exists"
+
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
