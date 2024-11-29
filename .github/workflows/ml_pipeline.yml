@@ -69,10 +69,14 @@ jobs:
           docker run -d \
             --name airflow \
             --network airflow-network \
+            --memory=4g \
+            --memory-swap=4g \
             -e AIRFLOW__CORE__SQL_ALCHEMY_CONN="postgresql+psycopg2://airflow:airflow@postgres/airflow" \
             -e AIRFLOW__DATABASE__SQL_ALCHEMY_CONN="postgresql+psycopg2://airflow:airflow@postgres/airflow" \
             -e AIRFLOW__CORE__EXECUTOR=LocalExecutor \
             -e AIRFLOW__CORE__LOAD_EXAMPLES=False \
+            -e AIRFLOW__CORE__PARALLELISM=1 \
+            -e AIRFLOW__SCHEDULER__MAX_THREADS=1 \
             -v ${{ github.workspace }}/dags:/opt/airflow/dags \
             -v ${{ github.workspace }}/logs:/opt/airflow/logs \
             -v ${{ github.workspace }}/plugins:/opt/airflow/plugins \
@@ -98,19 +102,17 @@ jobs:
 
       - name: Initialize Airflow DB
         run: |
-          # Wait and verify container is ready
-          for i in {1..5}; do
-            if docker exec airflow echo "Container is responding"; then
-              echo "Container is ready"
-              break
-            fi
-            echo "Waiting for container... ($i/5)"
-            sleep 10
-          done
+          # Check system resources
+          echo "System Memory:"
+          free -h
           
-          # Set permissions and init DB
-          docker exec --user root airflow chmod -R 777 /opt/airflow/logs
-          docker exec airflow airflow db init
+          echo "Docker Info:"
+          docker stats --no-stream
+          
+          # Initialize with reduced connections
+          docker exec -e AIRFLOW__CORE__MIN_SERIALIZED_DAG_UPDATE_INTERVAL=30 \
+            -e AIRFLOW__CORE__DAG_FILE_PROCESSOR_TIMEOUT=30 \
+            airflow airflow db init
 
       - name: Initialize Airflow
         run: |
