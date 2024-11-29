@@ -42,14 +42,44 @@ jobs:
           echo '${{ secrets.GOOGLE_APPLICATION_CREDENTIALS }}' > credentials/latest.json
           chmod 600 credentials/latest.json
 
-      - name: Start Airflow Services
-        run: |
-          docker-compose version
-          docker-compose up -d
-          echo "Waiting for Airflow services to be ready..."
-          sleep 30
+      - name: Create Docker network
+        run: docker network create airflow-network
 
-      - name: Run Stock Data Pipeline
+      - name: Start Postgres
         run: |
-          docker-compose run airflow-webserver airflow dags unpause stock_prediction_pipeline
-          docker-compose run airflow-webserver airflow dags trigger stock_prediction_pipeline
+          docker run -d \
+            --name postgres \
+            --network airflow-network \
+            -e POSTGRES_USER=airflow \
+            -e POSTGRES_PASSWORD=airflow \
+            -e POSTGRES_DB=airflow \
+            postgres:13
+
+      - name: Start Airflow
+        run: |
+          docker run -d \
+            --name airflow \
+            --network airflow-network \
+            -e AIRFLOW__CORE__SQL_ALCHEMY_CONN="postgresql+psycopg2://airflow:airflow@postgres/airflow" \
+            -e AIRFLOW__CORE__EXECUTOR=LocalExecutor \
+            -v ${{ github.workspace }}/dags:/opt/airflow/dags \
+            -v ${{ github.workspace }}/logs:/opt/airflow/logs \
+            -v ${{ github.workspace }}/plugins:/opt/airflow/plugins \
+            -v ${{ github.workspace }}/data:/opt/airflow/data \
+            airflow_custom
+
+      - name: Initialize Airflow
+        run: |
+          docker exec airflow airflow db init
+          docker exec airflow airflow users create \
+            --username admin \
+            --password admin \
+            --firstname Anonymous \
+            --lastname Admin \
+            --role Admin \
+            --email admin@example.com
+
+      - name: Run DAG
+        run: |
+          docker exec airflow airflow dags unpause stock_prediction_pipeline
+          docker exec airflow airflow dags trigger stock_prediction_pipeline
