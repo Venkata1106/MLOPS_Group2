@@ -69,19 +69,36 @@ jobs:
           docker run -d \
             --name airflow \
             --network airflow-network \
-            --memory=4g \
-            --memory-swap=4g \
+            --memory=6g \
+            --memory-reservation=2g \
             -e AIRFLOW__CORE__SQL_ALCHEMY_CONN="postgresql+psycopg2://airflow:airflow@postgres/airflow" \
             -e AIRFLOW__DATABASE__SQL_ALCHEMY_CONN="postgresql+psycopg2://airflow:airflow@postgres/airflow" \
             -e AIRFLOW__CORE__EXECUTOR=LocalExecutor \
             -e AIRFLOW__CORE__LOAD_EXAMPLES=False \
+            -e AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION=False \
             -e AIRFLOW__CORE__PARALLELISM=1 \
             -e AIRFLOW__SCHEDULER__MAX_THREADS=1 \
-            -v ${{ github.workspace }}/dags:/opt/airflow/dags \
-            -v ${{ github.workspace }}/logs:/opt/airflow/logs \
-            -v ${{ github.workspace }}/plugins:/opt/airflow/plugins \
-            -v ${{ github.workspace }}/data:/opt/airflow/data \
-            airflow_custom
+            -e AIRFLOW__WEBSERVER__WORKERS=1 \
+            airflow_custom airflow db migrate
+
+      - name: Initialize Connections
+        run: |
+          docker exec airflow airflow connections add 'postgres_default' \
+            --conn-type 'postgres' \
+            --conn-host 'postgres' \
+            --conn-login 'airflow' \
+            --conn-password 'airflow' \
+            --conn-schema 'airflow'
+
+      - name: Create Admin User
+        run: |
+          docker exec airflow airflow users create \
+            --role Admin \
+            --username admin \
+            --password admin \
+            --email admin@example.com \
+            --firstname admin \
+            --lastname admin
 
       - name: Verify Containers
         run: |
