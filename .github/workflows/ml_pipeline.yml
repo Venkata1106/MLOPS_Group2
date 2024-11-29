@@ -46,11 +46,36 @@ jobs:
           fi
           echo "Credentials file exists"
 
-      - name: Install dependencies
+      - name: Set up Docker
+        uses: docker/setup-buildx-action@v1
+
+      - name: Start Airflow Services
         run: |
-          python -m pip install --upgrade pip
-          pip install pandas numpy yfinance scikit-learn
-          pip install -r modelrequire.txt
+          docker-compose up -d
+          echo "Waiting for Airflow services to be ready..."
+          sleep 30
+
+      - name: Run Stock Data Pipeline
+        run: |
+          # Trigger the DAG
+          docker-compose run airflow-webserver airflow dags unpause stock_prediction_pipeline
+          docker-compose run airflow-webserver airflow dags trigger stock_prediction_pipeline
+          
+          # Wait for DAG completion and check for mitigated data
+          echo "Waiting for DAG to complete..."
+          for i in {1..30}; do
+            if [ -f "data/mitigated/AAPL_mitigated.csv" ]; then
+              echo "Mitigated data found!"
+              break
+            fi
+            echo "Waiting for mitigated data... ($i/30)"
+            sleep 10
+          done
+          
+          if [ ! -f "data/mitigated/AAPL_mitigated.csv" ]; then
+            echo "Error: Mitigated data not generated"
+            exit 1
+          fi
 
       - name: Train model
         id: training
