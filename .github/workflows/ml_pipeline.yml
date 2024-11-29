@@ -45,11 +45,14 @@ jobs:
       - name: Create Docker network
         run: docker network create airflow-network
 
+      - name: Create Airflow directories with proper permissions
+        run: |
+          mkdir -p ./logs ./plugins ./data
+          chmod -R 777 ./logs ./plugins ./data
+
       - name: Build Airflow Image
         run: |
-          # Build the custom Airflow image
           docker build -t airflow_custom -f docker/airflow/Dockerfile .
-          docker images  # Verify image was built
 
       - name: Start Postgres
         run: |
@@ -67,16 +70,23 @@ jobs:
             --name airflow \
             --network airflow-network \
             -e AIRFLOW__CORE__SQL_ALCHEMY_CONN="postgresql+psycopg2://airflow:airflow@postgres/airflow" \
+            -e AIRFLOW__DATABASE__SQL_ALCHEMY_CONN="postgresql+psycopg2://airflow:airflow@postgres/airflow" \
             -e AIRFLOW__CORE__EXECUTOR=LocalExecutor \
+            -e AIRFLOW__CORE__LOAD_EXAMPLES=False \
             -v ${{ github.workspace }}/dags:/opt/airflow/dags \
             -v ${{ github.workspace }}/logs:/opt/airflow/logs \
             -v ${{ github.workspace }}/plugins:/opt/airflow/plugins \
             -v ${{ github.workspace }}/data:/opt/airflow/data \
             airflow_custom
 
+      - name: Initialize Airflow DB
+        run: |
+          sleep 10  # Wait for services to be ready
+          docker exec --user root airflow chmod -R 777 /opt/airflow/logs
+          docker exec airflow airflow db init
+
       - name: Initialize Airflow
         run: |
-          docker exec airflow airflow db init
           docker exec airflow airflow users create \
             --username admin \
             --password admin \
@@ -85,7 +95,55 @@ jobs:
             --role Admin \
             --email admin@example.com
 
-      - name: Run DAG
+      - name: Create Airflow User
         run: |
+          docker exec airflow airflow users create \
+            --username admin \
+            --password admin \
+            --firstname Anonymous \
+            --lastname Admin \
+            --role Admin \
+            --email admin@example.com
+
+      - name: List and Trigger DAG
+        run: |
+          echo "Available DAGs:"
+          docker exec airflow airflow dags list
+          
+          echo "Unpausing DAG:"
           docker exec airflow airflow dags unpause stock_prediction_pipeline
+          
+          echo "Triggering DAG:"
           docker exec airflow airflow dags trigger stock_prediction_pipeline
+          
+          echo "Waiting for DAG to complete..."
+          sleep 60  # Adjust time based on your DAG's typical runtime
+
+      - name: Wait for DAG to Generate Data
+        run: |
+          echo "Waiting for mitigated data to be generated..."
+          for i in {1..30}; do
+            if [ -f "data/mitigated/AAPL_mitigated.csv" ]; then
+              echo "✓ AAPL data found"
+              ls -l data/mitigated/AAPL_mitigated.csv
+              break
+            fi
+            echo "Waiting... ($i/30)"
+            sleep 10
+          done
+
+          # Verify data exists
+          if [ ! -f "data/mitigated/AAPL_mitigated.csv" ]; then
+            echo "Error: Mitigated data not generated"
+            exit 1
+          fi
+
+      - name: Train Model
+        run: |
+          echo "Starting model training with mitigated data..."
+          python -m models.train
+
+      - name: Validate Model
+        run: |
+          echo "Starting model validation..."
+          python -m models.validate
