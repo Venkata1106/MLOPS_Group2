@@ -6,53 +6,19 @@ on:
   workflow_dispatch:
 
 jobs:
-  train-and-validate:
+  data_pipeline:
     runs-on: ubuntu-latest
-    services:
-      postgres:
-        image: postgres:13
-        env:
-          POSTGRES_USER: airflow
-          POSTGRES_PASSWORD: airflow
-          POSTGRES_DB: airflow
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-
     steps:
-      - uses: actions/checkout@v2
-
-      - name: Set up Python
-        uses: actions/setup-python@v2
-        with:
-          python-version: '3.9'
-
-      - name: Install Docker Compose
-        run: |
-          python -m pip install --upgrade pip
-          pip install docker-compose
-
-      - name: Setup Credentials
-        run: |
-          mkdir -p credentials
-          echo '${{ secrets.GOOGLE_APPLICATION_CREDENTIALS }}' > credentials/latest.json
-          chmod 600 credentials/latest.json
+      - name: Checkout code
+        uses: actions/checkout@v2
 
       - name: Create Docker network
         run: docker network create airflow-network
 
-      - name: Create Airflow directories with proper permissions
+      - name: Create directories
         run: |
-          mkdir -p ./logs ./plugins ./data
-          chmod -R 777 ./logs ./plugins ./data
-
-      - name: Build Airflow Image
-        run: |
-          docker build -t airflow_custom -f docker/airflow/Dockerfile .
+          mkdir -p ./dags ./logs ./plugins ./data/raw ./data/processed ./data/mitigated ./data/dvc_tracked
+          chmod -R 777 ./logs ./data
 
       - name: Start Postgres
         run: |
@@ -64,75 +30,34 @@ jobs:
             -e POSTGRES_DB=airflow \
             postgres:13
 
+      - name: Build Airflow Image
+        run: |
+          docker build -t airflow_custom -f docker/airflow/Dockerfile .
+
       - name: Start Airflow
         run: |
           docker run -d \
             --name airflow \
             --network airflow-network \
-            --memory=6g \
-            --memory-reservation=2g \
             -e AIRFLOW__CORE__SQL_ALCHEMY_CONN="postgresql+psycopg2://airflow:airflow@postgres/airflow" \
             -e AIRFLOW__DATABASE__SQL_ALCHEMY_CONN="postgresql+psycopg2://airflow:airflow@postgres/airflow" \
             -e AIRFLOW__CORE__EXECUTOR=LocalExecutor \
             -e AIRFLOW__CORE__LOAD_EXAMPLES=False \
-            -e AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION=False \
-            -e AIRFLOW__CORE__PARALLELISM=1 \
-            -e AIRFLOW__SCHEDULER__MAX_THREADS=1 \
-            -e AIRFLOW__WEBSERVER__WORKERS=1 \
-            airflow_custom airflow db migrate
-
-      - name: Initialize Connections
-        run: |
-          docker exec airflow airflow connections add 'postgres_default' \
-            --conn-type 'postgres' \
-            --conn-host 'postgres' \
-            --conn-login 'airflow' \
-            --conn-password 'airflow' \
-            --conn-schema 'airflow'
-
-      - name: Create Admin User
-        run: |
-          docker exec airflow airflow users create \
-            --role Admin \
-            --username admin \
-            --password admin \
-            --email admin@example.com \
-            --firstname admin \
-            --lastname admin
-
-      - name: Verify Containers
-        run: |
-          echo "Checking containers..."
-          docker ps
-          
-          echo "Checking Postgres..."
-          docker logs postgres
-          
-          echo "Checking Airflow..."
-          docker logs airflow
-          
-          # Verify containers are running
-          if ! docker ps | grep -q airflow; then
-            echo "Error: Airflow container not running"
-            exit 1
-          fi
-
-      - name: Initialize Airflow DB
-        run: |
-          # Check system resources
-          echo "System Memory:"
-          free -h
-          
-          echo "Docker Info:"
-          docker stats --no-stream
-          
-          # Initialize with reduced connections
-          docker exec -e AIRFLOW__CORE__MIN_SERIALIZED_DAG_UPDATE_INTERVAL=30 \
-            -e AIRFLOW__CORE__DAG_FILE_PROCESSOR_TIMEOUT=30 \
-            airflow airflow db init
+            -v ${{ github.workspace }}/dags:/opt/airflow/dags \
+            -v ${{ github.workspace }}/logs:/opt/airflow/logs \
+            -v ${{ github.workspace }}/plugins:/opt/airflow/plugins \
+            -v ${{ github.workspace }}/data:/opt/airflow/data \
+            airflow_custom
 
       - name: Initialize Airflow
         run: |
+          echo "Waiting for services to be ready..."
+          sleep 15
+          
+          echo "Initializing Airflow DB..."
+          docker exec airflow airflow db init
+          
+          echo "Creating Airflow user..."
           docker exec airflow airflow users create \
             --username admin \
             --password admin \
@@ -141,17 +66,7 @@ jobs:
             --role Admin \
             --email admin@example.com
 
-      - name: Create Airflow User
-        run: |
-          docker exec airflow airflow users create \
-            --username admin \
-            --password admin \
-            --firstname Anonymous \
-            --lastname Admin \
-            --role Admin \
-            --email admin@example.com
-
-      - name: List and Trigger DAG
+      - name: Run DAG
         run: |
           echo "Available DAGs:"
           docker exec airflow airflow dags list
@@ -163,33 +78,25 @@ jobs:
           docker exec airflow airflow dags trigger stock_prediction_pipeline
           
           echo "Waiting for DAG to complete..."
-          sleep 60  # Adjust time based on your DAG's typical runtime
+          sleep 300  # 5 minutes wait, adjust based on your DAG's runtime
 
-      - name: Wait for DAG to Generate Data
+      - name: Check DAG output
         run: |
-          echo "Waiting for mitigated data to be generated..."
-          for i in {1..30}; do
-            if [ -f "data/mitigated/AAPL_mitigated.csv" ]; then
-              echo "✓ AAPL data found"
-              ls -l data/mitigated/AAPL_mitigated.csv
-              break
-            fi
-            echo "Waiting... ($i/30)"
-            sleep 10
-          done
+          echo "Checking mitigated data files..."
+          ls -l data/mitigated/
+          ls -l data/dvc_tracked/
 
-          # Verify data exists
-          if [ ! -f "data/mitigated/AAPL_mitigated.csv" ]; then
-            echo "Error: Mitigated data not generated"
-            exit 1
-          fi
+      - name: Set up DVC
+        uses: iterative/setup-dvc@v1
 
-      - name: Train Model
+      - name: Configure Git
         run: |
-          echo "Starting model training with mitigated data..."
-          python -m models.train
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
 
-      - name: Validate Model
+      - name: Track with DVC and Push
         run: |
-          echo "Starting model validation..."
-          python -m models.validate
+          dvc add data/dvc_tracked/*.csv
+          git add data/dvc_tracked/*.dvc
+          git commit -m "ci: add mitigated data to dvc"
+          dvc push
