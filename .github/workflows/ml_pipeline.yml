@@ -31,20 +31,25 @@ jobs:
         with:
           python-version: '3.9'
 
-      - name: Build Airflow Image
+      - name: Install Docker Compose
         run: |
-          docker build -t airflow_custom -f docker/airflow/Dockerfile .
-          
+          python -m pip install --upgrade pip
+          pip install docker-compose
+
+      - name: Setup Credentials
+        run: |
+          mkdir -p credentials
+          echo '${{ secrets.GOOGLE_APPLICATION_CREDENTIALS }}' > credentials/latest.json
+          chmod 600 credentials/latest.json
+
       - name: Start Airflow Services
         run: |
-          docker run -d \
-            --name airflow \
-            -e AIRFLOW__CORE__SQL_ALCHEMY_CONN="postgresql+psycopg2://airflow:airflow@postgres/airflow" \
-            -v ${{ github.workspace }}/dags:/opt/airflow/dags \
-            -v ${{ github.workspace }}/data:/opt/airflow/data \
-            airflow_custom
+          docker-compose version
+          docker-compose up -d
+          echo "Waiting for Airflow services to be ready..."
+          sleep 30
 
-      - name: Run DAG
+      - name: Run Stock Data Pipeline
         run: |
-          docker exec airflow airflow dags unpause stock_prediction_pipeline
-          docker exec airflow airflow dags trigger stock_prediction_pipeline
+          docker-compose run airflow-webserver airflow dags unpause stock_prediction_pipeline
+          docker-compose run airflow-webserver airflow dags trigger stock_prediction_pipeline
