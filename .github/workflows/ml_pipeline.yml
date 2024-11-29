@@ -45,6 +45,12 @@ jobs:
       - name: Create Docker network
         run: docker network create airflow-network
 
+      - name: Build Airflow Image
+        run: |
+          # Build the custom Airflow image
+          docker build -t airflow_custom -f docker/airflow/Dockerfile .
+          docker images  # Verify image was built
+
       - name: Start Postgres
         run: |
           docker run -d \
