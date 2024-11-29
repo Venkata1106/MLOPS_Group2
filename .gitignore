@@ -21,3 +21,7 @@ mlruns/
 
 # System
 .DS_Store
+credentials/
+logs/
+credentials/
+logs/
