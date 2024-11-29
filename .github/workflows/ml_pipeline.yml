@@ -79,9 +79,36 @@ jobs:
             -v ${{ github.workspace }}/data:/opt/airflow/data \
             airflow_custom
 
+      - name: Verify Containers
+        run: |
+          echo "Checking containers..."
+          docker ps
+          
+          echo "Checking Postgres..."
+          docker logs postgres
+          
+          echo "Checking Airflow..."
+          docker logs airflow
+          
+          # Verify containers are running
+          if ! docker ps | grep -q airflow; then
+            echo "Error: Airflow container not running"
+            exit 1
+          fi
+
       - name: Initialize Airflow DB
         run: |
-          sleep 10  # Wait for services to be ready
+          # Wait and verify container is ready
+          for i in {1..5}; do
+            if docker exec airflow echo "Container is responding"; then
+              echo "Container is ready"
+              break
+            fi
+            echo "Waiting for container... ($i/5)"
+            sleep 10
+          done
+          
+          # Set permissions and init DB
           docker exec --user root airflow chmod -R 777 /opt/airflow/logs
           docker exec airflow airflow db init
 
