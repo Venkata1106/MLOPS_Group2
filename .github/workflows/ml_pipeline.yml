@@ -36,32 +36,47 @@ jobs:
       - name: Build Airflow Docker image
         run: docker build -t airflow_custom -f docker/airflow/Dockerfile .
 
-      # Step 5: Start Airflow container
+      # Step 5: Start Airflow
       - name: Start Airflow
         run: |
           docker run -d \
             --name airflow \
             --network airflow-network \
+            -p 8080:8080 \
             -e AIRFLOW__CORE__SQL_ALCHEMY_CONN="postgresql+psycopg2://airflow:airflow@postgres/airflow" \
             -e AIRFLOW__DATABASE__SQL_ALCHEMY_CONN="postgresql+psycopg2://airflow:airflow@postgres/airflow" \
             -e AIRFLOW__CORE__EXECUTOR=LocalExecutor \
             -e AIRFLOW__CORE__LOAD_EXAMPLES=False \
+            -e AIRFLOW__WEBSERVER__SECRET_KEY="${{ secrets.AIRFLOW_SECRET_KEY }}" \
             -v ${{ github.workspace }}/dags:/opt/airflow/dags \
             -v ${{ github.workspace }}/logs:/opt/airflow/logs \
             -v ${{ github.workspace }}/plugins:/opt/airflow/plugins \
             -v ${{ github.workspace }}/data:/opt/airflow/data \
             airflow_custom
 
-      # Step 6: Wait for services to be ready
-      - name: Wait for Airflow to be ready
+      # Step 6: Start Airflow Webserver
+      - name: Start Airflow Webserver
         run: |
+          echo "Starting Airflow components..."
+          docker exec -d airflow airflow webserver
+          docker exec -d airflow airflow scheduler
+          
           echo "Waiting for services to be ready..."
-          sleep 30  # Adjust the sleep time if necessary
-
-          until curl -s http://localhost:8080; do
-            echo "Waiting for Airflow webserver to be available..."
-            sleep 5
+          for i in {1..30}; do
+            if curl -s -f http://localhost:8080/health > /dev/null; then
+              echo "Airflow webserver is ready!"
+              break
+            fi
+            echo "Waiting for Airflow webserver... Attempt $i/30"
+            sleep 10
           done
+          
+          # Check if webserver started successfully
+          if ! curl -s -f http://localhost:8080/health > /dev/null; then
+            echo "Error: Airflow webserver failed to start"
+            docker logs airflow
+            exit 1
+          fi
 
       # Step 7: Initialize Airflow DB
       - name: Initialize Airflow DB
