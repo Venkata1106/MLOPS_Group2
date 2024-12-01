@@ -13,7 +13,15 @@ RUN apt-get update && \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
+# Ensure the logs directory exists with correct permissions
+RUN mkdir -p /opt/airflow/logs && \
+    chown -R airflow:airflow /opt/airflow/logs && \
+    chmod -R 755 /opt/airflow/logs    
+
 USER airflow
+
+# Set the working directory to Airflow's home
+WORKDIR /opt/airflow
 
 # Copy requirements file
 COPY requirements.txt /opt/airflow/requirements.txt
