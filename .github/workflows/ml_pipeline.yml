@@ -42,7 +42,7 @@ jobs:
           docker run -d \
             --name airflow \
             --network airflow-network \
-            -p 8081:8081 \
+            -p 8080:8080 \
             -e AIRFLOW__CORE__SQL_ALCHEMY_CONN="postgresql+psycopg2://airflow:airflow@postgres/airflow" \
             -e AIRFLOW__DATABASE__SQL_ALCHEMY_CONN="postgresql+psycopg2://airflow:airflow@postgres/airflow" \
             -e AIRFLOW__CORE__EXECUTOR=LocalExecutor \
@@ -54,7 +54,13 @@ jobs:
             -v ${{ github.workspace }}/data:/opt/airflow/data \
             airflow_custom
 
-      # Step 6: Start Airflow Webserver
+      # Step 6: Initialize Airflow DB
+      - name: Initialize Airflow DB
+        run: |
+          echo "Initializing Airflow DB..."
+          docker exec airflow airflow db init
+
+      # Step 7: Start Airflow Webserver
       - name: Start Airflow Webserver
         run: |
           echo "Starting Airflow components..."
@@ -68,7 +74,7 @@ jobs:
               break
             fi
             echo "Waiting for Airflow webserver... Attempt $i/30"
-            sleep 10
+            sleep 15
           done
           
           # Check if webserver started successfully
@@ -77,12 +83,6 @@ jobs:
             docker logs airflow
             exit 1
           fi
-
-      # Step 7: Initialize Airflow DB
-      - name: Initialize Airflow DB
-        run: |
-          echo "Initializing Airflow DB..."
-          docker exec airflow airflow db init
 
       # Step 8: Create Airflow user
       - name: Create Airflow user
