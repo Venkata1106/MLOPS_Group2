@@ -42,7 +42,7 @@ jobs:
           docker run -d \
             --name airflow \
             --network airflow-network \
-            -p 8080:8080 \
+            -p 8081:8081 \
             -e AIRFLOW__CORE__SQL_ALCHEMY_CONN="postgresql+psycopg2://airflow:airflow@postgres/airflow" \
             -e AIRFLOW__DATABASE__SQL_ALCHEMY_CONN="postgresql+psycopg2://airflow:airflow@postgres/airflow" \
             -e AIRFLOW__CORE__EXECUTOR=LocalExecutor \
