@@ -13,6 +13,10 @@ RUN apt-get update && \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
+# Create log directory and set permissions
+RUN mkdir -p /opt/airflow/logs && \
+    chown -R airflow:airflow /opt/airflow/logs
+
 USER airflow
 
 # Copy requirements file
