@@ -15,7 +15,7 @@ RUN apt-get update && \
 
 # Ensure the logs directory exists with correct permissions
 RUN mkdir -p /opt/airflow/logs && \
-    chown -R airflow:airflow /opt/airflow/logs && \
+    chown -R airflow /opt/airflow/logs && \
     chmod -R 755 /opt/airflow/logs    
 
 USER airflow
