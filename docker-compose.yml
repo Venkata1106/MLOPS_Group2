@@ -48,9 +48,9 @@ services:
       - "8080:8080"
     healthcheck:
       test: ["CMD", "curl", "--fail", "http://localhost:8080/health"]
-      interval: 10s
+      interval: 20s
       timeout: 10s
-      retries: 5
+      retries: 10
     restart: always
     env_file:
       - .env
@@ -64,7 +64,14 @@ services:
 
   airflow-init:
     <<: *airflow-common
-    command: bash -c "airflow db init && airflow users create --username admin --password admin --firstname Anonymous --lastname Admin --role Admin --email admin@example.com"
+    #command: bash -c "until pg_isready -h postgres -U airflow; do sleep 1; done; airflow db init && airflow users create ..."
+    command: bash -c "
+      mkdir -p /opt/airflow/logs /opt/airflow/logs/scheduler &&
+      chmod -R 777 /opt/airflow/logs &&
+      until pg_isready -h postgres -U airflow; do sleep 1; done;
+      airflow db init &&
+      airflow users create ..."
+    
     environment:
       <<: *airflow-common-env
       _AIRFLOW_DB_UPGRADE: 'true'
