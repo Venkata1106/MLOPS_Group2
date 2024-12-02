@@ -53,16 +53,15 @@ jobs:
             -v ${{ github.workspace }}/plugins:/opt/airflow/plugins \
             -v ${{ github.workspace }}/data:/opt/airflow/data \
             airflow_custom
-            
-      - name: Create Logs Directory and Set Permissions
-        run: |
-          mkdir -p logs
-          chmod -R 777 logs
+
       # Step 6: Initialize Airflow DB
       - name: Initialize Airflow DB
         run: |
           echo "Initializing Airflow DB..."
-          docker exec airflow airflow db init
+          docker exec airflow bash -c "
+            mkdir -p /opt/airflow/logs /opt/airflow/logs/scheduler &&
+            chmod -R 777 /opt/airflow/logs &&
+            airflow db init"
 
       # Step 7: Start Airflow Webserver
       - name: Start Airflow Webserver
@@ -70,7 +69,7 @@ jobs:
           echo "Starting Airflow components..."
           docker exec -d airflow airflow webserver
           docker exec -d airflow airflow scheduler
-          
+
           echo "Waiting for services to be ready..."
           for i in {1..30}; do
             if curl -s -f http://localhost:8080/health > /dev/null; then
@@ -80,8 +79,7 @@ jobs:
             echo "Waiting for Airflow webserver... Attempt $i/30"
             sleep 15
           done
-          
-          # Check if webserver started successfully
+
           if ! curl -s -f http://localhost:8080/health > /dev/null; then
             echo "Error: Airflow webserver failed to start"
             docker logs airflow
@@ -94,7 +92,7 @@ jobs:
           echo "Creating Airflow user..."
           docker exec airflow airflow users create \
             --username admin \
-            --password ${{ secrets.AIRFLOW_PASSWORD }}  # Use Secrets for sensitive data
+            --password ${{ secrets.AIRFLOW_PASSWORD }} \
             --firstname Anonymous \
             --lastname Admin \
             --role Admin \
@@ -122,7 +120,7 @@ jobs:
         id: trigger_dag
         env:
           AIRFLOW_USERNAME: admin
-          AIRFLOW_PASSWORD: ${{ secrets.AIRFLOW_PASSWORD }}  # Use Secrets for sensitive data
+          AIRFLOW_PASSWORD: ${{ secrets.AIRFLOW_PASSWORD }}
           AIRFLOW_VM_IP: 34.170.107.190:8080
           AIRFLOW_DAG_ID: stock_prediction_pipeline
         run: |
@@ -137,7 +135,7 @@ jobs:
         id: wait_for_completion
         env:
           AIRFLOW_USERNAME: admin
-          AIRFLOW_PASSWORD: ${{ secrets.AIRFLOW_PASSWORD }}  # Use Secrets for sensitive data
+          AIRFLOW_PASSWORD: ${{ secrets.AIRFLOW_PASSWORD }}
           AIRFLOW_VM_IP: 34.170.107.190:8080
           AIRFLOW_DAG_ID: stock_prediction_pipeline
           DAG_RUN_ID: ${{ env.dag_run_id }}
@@ -147,9 +145,7 @@ jobs:
             status=$(curl -s -u "$AIRFLOW_USERNAME:$AIRFLOW_PASSWORD" \
               "http://$AIRFLOW_VM_IP/api/v1/dags/$AIRFLOW_DAG_ID/dagRuns/$DAG_RUN_ID" \
               | jq -r '.state')
-
             echo "Current DAG run state: $status"
-
             if [ "$status" == "success" ]; then
               echo "DAG run completed successfully!"
               break
