@@ -35,6 +35,17 @@ jobs:
           sudo chmod +x /usr/local/bin/docker-compose
           docker-compose version
 
+      - name: Create .env File from Secrets
+        run: |
+          echo "_AIRFLOW_WWW_USER_USERNAME=${{ secrets._AIRFLOW_WWW_USER_USERNAME }}" >> .env
+          echo "_AIRFLOW_WWW_USER_PASSWORD=${{ secrets._AIRFLOW_WWW_USER_PASSWORD }}" >> .env
+          echo "AIRFLOW_VAR_smtp_server=${{ secrets.AIRFLOW_VAR_smtp_server }}" >> .env
+          echo "AIRFLOW_VAR_smtp_port=${{ secrets.AIRFLOW_VAR_smtp_port }}" >> .env
+          echo "AIRFLOW_VAR_alert_sender_email=${{ secrets.AIRFLOW_VAR_alert_sender_email }}" >> .env
+          echo "AIRFLOW_VAR_alert_recipient_email=${{ secrets.AIRFLOW_VAR_alert_recipient_email }}" >> .env
+          echo "AIRFLOW_VAR_smtp_username=${{ secrets.AIRFLOW_VAR_smtp_username }}" >> .env
+          echo "AIRFLOW_VAR_smtp_password=${{ secrets.AIRFLOW_VAR_smtp_password }}" >> .env
+
       - name: Build Docker Containers
         run: |
           docker-compose -f docker-compose.yml build
@@ -61,6 +72,17 @@ jobs:
           sudo curl -L "https://github.com/docker/compose/releases/download/v2.17.2/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
           sudo chmod +x /usr/local/bin/docker-compose
           docker-compose version
+
+      - name: Create .env File from Secrets
+        run: |
+          echo "_AIRFLOW_WWW_USER_USERNAME=${{ secrets._AIRFLOW_WWW_USER_USERNAME }}" >> .env
+          echo "_AIRFLOW_WWW_USER_PASSWORD=${{ secrets._AIRFLOW_WWW_USER_PASSWORD }}" >> .env
+          echo "AIRFLOW_VAR_smtp_server=${{ secrets.AIRFLOW_VAR_smtp_server }}" >> .env
+          echo "AIRFLOW_VAR_smtp_port=${{ secrets.AIRFLOW_VAR_smtp_port }}" >> .env
+          echo "AIRFLOW_VAR_alert_sender_email=${{ secrets.AIRFLOW_VAR_alert_sender_email }}" >> .env
+          echo "AIRFLOW_VAR_alert_recipient_email=${{ secrets.AIRFLOW_VAR_alert_recipient_email }}" >> .env
+          echo "AIRFLOW_VAR_smtp_username=${{ secrets.AIRFLOW_VAR_smtp_username }}" >> .env
+          echo "AIRFLOW_VAR_smtp_password=${{ secrets.AIRFLOW_VAR_smtp_password }}" >> .env
 
       - name: Deploy Application
         run: |
