@@ -35,6 +35,11 @@ jobs:
           sudo chmod +x /usr/local/bin/docker-compose
           docker-compose version
 
+      - name: Create Logs Directory and Set Permissions
+        run: |
+          mkdir -p logs
+          chmod -R 777 logs
+
       - name: Create .env File from Secrets
         run: |
           echo "_AIRFLOW_WWW_USER_USERNAME=${{ secrets._AIRFLOW_WWW_USER_USERNAME }}" >> .env
@@ -72,6 +77,11 @@ jobs:
           sudo curl -L "https://github.com/docker/compose/releases/download/v2.17.2/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
           sudo chmod +x /usr/local/bin/docker-compose
           docker-compose version
+
+      - name: Create Logs Directory and Set Permissions
+        run: |
+          mkdir -p logs
+          chmod -R 777 logs
 
       - name: Create .env File from Secrets
         run: |
