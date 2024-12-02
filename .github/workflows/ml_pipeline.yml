@@ -53,7 +53,11 @@ jobs:
             -v ${{ github.workspace }}/plugins:/opt/airflow/plugins \
             -v ${{ github.workspace }}/data:/opt/airflow/data \
             airflow_custom
-
+            
+      - name: Create Logs Directory and Set Permissions
+        run: |
+          mkdir -p logs
+          chmod -R 777 logs
       # Step 6: Initialize Airflow DB
       - name: Initialize Airflow DB
         run: |
