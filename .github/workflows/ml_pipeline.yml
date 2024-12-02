@@ -17,11 +17,18 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v3
 
-      # Step 2: Set up Docker network
+      # Step 2: Increase Docker Memory
+      - name: Increase Docker Memory
+        run: |
+          sudo mkdir -p /etc/docker
+          echo '{"default-runtime": "runc", "runtimes": {"runc": {"path": "runc"}}, "storage-driver": "overlay2", "storage-opts": ["overlay2.override_kernel_check=true"], "default-ulimits": {"memlock": {"Name": "memlock", "Hard": -1, "Soft": -1}}, "default-shm-size": "256m", "log-driver": "json-file", "log-opts": {"max-size": "10m", "max-file": "3"}}' | sudo tee /etc/docker/daemon.json
+          sudo service docker restart
+
+      # Step 3: Set up Docker network
       - name: Create Docker network for Airflow
         run: docker network create airflow-network
 
-      # Step 3: Start PostgreSQL container
+      # Step 4: Start PostgreSQL container
       - name: Start PostgreSQL
         run: |
           docker run -d \
@@ -34,11 +41,11 @@ jobs:
             -e POSTGRES_WORK_MEM=4MB \
             postgres:13
 
-      # Step 4: Build Airflow Docker image
+      # Step 5: Build Airflow Docker image
       - name: Build Airflow Docker image
         run: docker build -t airflow_custom -f docker/airflow/Dockerfile .
 
-      # Step 5: Start Airflow
+      # Step 6: Start Airflow
       - name: Start Airflow
         run: |
           docker run -d \
@@ -47,10 +54,9 @@ jobs:
             -p 8080:8080 \
             -e AIRFLOW__CORE__SQL_ALCHEMY_CONN="postgresql+psycopg2://airflow:airflow@postgres/airflow" \
             -e AIRFLOW__DATABASE__SQL_ALCHEMY_CONN="postgresql+psycopg2://airflow:airflow@postgres/airflow" \
-            -e AIRFLOW__CORE__EXECUTOR=LocalExecutor \
+            -e AIRFLOW__CORE__EXECUTOR=SequentialExecutor \
             -e AIRFLOW__CORE__LOAD_EXAMPLES=False \
-            -e AIRFLOW__CORE__DAG_CONCURRENCY=1 \
-            -e AIRFLOW__CORE__MAX_ACTIVE_RUNS_PER_DAG=1 \
+            -e AIRFLOW__CORE__MAX_ACTIVE_TASKS_PER_DAG=1 \
             -e AIRFLOW__WEBSERVER__SECRET_KEY="${{ secrets.AIRFLOW_SECRET_KEY }}" \
             -v airflow-logs:/opt/airflow/logs \
             -v ${{ github.workspace }}/dags:/opt/airflow/dags \
@@ -58,7 +64,7 @@ jobs:
             -v ${{ github.workspace }}/data:/opt/airflow/data \
             airflow_custom
 
-      # Step 6: Initialize Airflow DB
+      # Step 7: Migrate Airflow DB
       - name: Migrate Airflow DB
         run: |
           echo "Migrating Airflow DB..."
@@ -66,7 +72,7 @@ jobs:
             chmod -R 777 /opt/airflow/logs &&
             airflow db migrate"
 
-      # Step 7: Start Airflow Components
+      # Step 8: Start Airflow Components
       - name: Start Airflow Components
         run: |
           docker exec -d airflow airflow webserver
@@ -88,7 +94,7 @@ jobs:
             exit 1
           fi
 
-      # Step 8: Create Airflow user
+      # Step 9: Create Airflow user
       - name: Create Airflow user
         run: |
           docker exec airflow airflow users create \
