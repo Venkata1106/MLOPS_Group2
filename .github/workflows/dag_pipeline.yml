@@ -1,62 +1,128 @@
-name: Airflow Pipeline CI/CD
+name: Stock Prediction Pipeline with Email Notifications
 
 on:
+  workflow_dispatch:
   push:
     branches: [ main ]
     paths:
       - 'dags/**'
-      - 'docker/**'
       - 'src/**'
-      - 'requirements.txt'
-  workflow_dispatch:
 
 jobs:
-  build-and-test:
+  setup-and-trigger:
     runs-on: ubuntu-latest
     
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Build Docker Images
+      - name: Install Required Utilities
         run: |
-          docker-compose build
-          docker-compose up -d
+          sudo apt-get update
+          sudo apt-get install -y docker-compose-plugin curl jq
+          docker compose version
+
+      - name: Create Required Directories
+        run: |
+          mkdir -p ./dags
+          mkdir -p ./logs
+          mkdir -p ./plugins
+          mkdir -p ./data/{raw,processed,mitigated}
+          chmod -R 777 ./logs
+
+      - name: Start Airflow Services
+        run: |
+          docker compose build
+          docker compose up -d
+        env:
+          AIRFLOW_VAR_smtp_server: ${{ secrets.AIRFLOW_VAR_SMTP_SERVER }}
+          AIRFLOW_VAR_smtp_port: ${{ secrets.AIRFLOW_VAR_SMTP_PORT }}
+          AIRFLOW_VAR_alert_sender_email: ${{ secrets.AIRFLOW_VAR_ALERT_SENDER_EMAIL }}
+          AIRFLOW_VAR_alert_recipient_email: ${{ secrets.AIRFLOW_VAR_ALERT_RECIPIENT_EMAIL }}
+          AIRFLOW_VAR_smtp_username: ${{ secrets.AIRFLOW_VAR_SMTP_USERNAME }}
+          AIRFLOW_VAR_smtp_password: ${{ secrets.AIRFLOW_VAR_SMTP_PASSWORD }}
 
       - name: Wait for Airflow
         run: |
           echo "Waiting for Airflow to be ready..."
-          timeout 60s bash -c 'until curl -s http://localhost:8080/health > /dev/null; do sleep 5; done'
+          timeout 120s bash -c 'until curl -s http://localhost:8080/health > /dev/null; do 
+            echo "Waiting for Airflow webserver..."; 
+            sleep 10; 
+          done'
 
-      - name: Test DAG Import
+      - name: Generate Unique DAG Run ID
+        id: unique_id
+        run: echo "dag_run_id=stock_prediction_$(date +'%Y%m%d%H%M%S')" >> $GITHUB_OUTPUT
+
+      - name: Trigger DAG Run
+        id: trigger_dag
         run: |
-          docker-compose exec -T airflow-scheduler \
-            python -c "
-            from airflow.models import DagBag
-            dag_bag = DagBag('/opt/airflow/dags')
-            if dag_bag.import_errors:
-                raise Exception(f'DAG import errors: {dag_bag.import_errors}')
-            dag = dag_bag.get_dag('stock_prediction_pipeline')
-            if not dag:
-                raise Exception('stock_prediction_pipeline DAG not found')
-            print('DAG import successful')
-            "
+          docker compose exec -T airflow-scheduler \
+            airflow dags trigger \
+              -r ${{ steps.unique_id.outputs.dag_run_id }} \
+              stock_prediction_pipeline
 
-      - name: Test DAG Tasks
+      - name: Wait for DAG Completion
+        id: wait_for_completion
         run: |
-          docker-compose exec -T airflow-scheduler \
-            airflow dags test stock_prediction_pipeline $(date -I)
+          echo "Polling for DAG run status..."
+          while true; do
+            status=$(docker compose exec -T airflow-scheduler \
+              airflow dags state stock_prediction_pipeline ${{ steps.unique_id.outputs.dag_run_id }})
+            
+            echo "Current DAG run state: $status"
+            
+            if [ "$status" == "success" ]; then
+              echo "DAG run completed successfully!"
+              break
+            elif [ "$status" == "failed" ]; then
+              echo "DAG run failed!"
+              exit 1
+            else
+              echo "DAG is still running. Waiting..."
+              sleep 30
+            fi
+          done
 
-      - name: Check Airflow Logs
+      - name: Collect Airflow Logs
         if: always()
         run: |
-          docker-compose logs airflow-scheduler
-          docker-compose logs airflow-webserver
+          mkdir -p logs
+          docker compose logs --no-color airflow-scheduler > logs/scheduler.log 2>&1
+          docker compose logs --no-color airflow-webserver > logs/webserver.log 2>&1
 
-      - name: Upload Airflow Logs
+      - name: Send Email Notification
+        if: always()
+        env:
+          SMTP_SERVER: ${{ secrets.AIRFLOW_VAR_SMTP_SERVER }}
+          SMTP_PORT: ${{ secrets.AIRFLOW_VAR_SMTP_PORT }}
+          EMAIL_USERNAME: ${{ secrets.AIRFLOW_VAR_SMTP_USERNAME }}
+          EMAIL_PASSWORD: ${{ secrets.AIRFLOW_VAR_SMTP_PASSWORD }}
+          RECIPIENT_EMAIL: ${{ secrets.AIRFLOW_VAR_ALERT_RECIPIENT_EMAIL }}
+        run: |
+          echo "Stock Prediction Pipeline Status Notification"
+          (
+            echo "Subject: Stock Prediction Pipeline Status: ${{ job.status }}"
+            echo "To: $RECIPIENT_EMAIL"
+            echo "Content-Type: text/html"
+            echo ""
+            echo "<h2>Stock Prediction Pipeline Run Status</h2>"
+            echo "<p>DAG Run ID: ${{ steps.unique_id.outputs.dag_run_id }}</p>"
+            echo "<p>Status: ${{ job.status }}</p>"
+            echo "<p>Timestamp: $(date)</p>"
+            echo "<h3>Recent Logs:</h3>"
+            echo "<pre>"
+            tail -n 50 logs/scheduler.log
+            echo "</pre>"
+          ) > email.txt
+
+          curl --url "smtp://$SMTP_SERVER:$SMTP_PORT" --ssl-reqd \
+            --mail-from "$EMAIL_USERNAME" \
+            --mail-rcpt "$RECIPIENT_EMAIL" \
+            --upload-file email.txt \
+            --user "$EMAIL_USERNAME:$EMAIL_PASSWORD"
+
+      - name: Upload Logs as Artifacts
         if: always()
         uses: actions/upload-artifact@v3
         with:
@@ -67,19 +133,5 @@ jobs:
       - name: Cleanup
         if: always()
         run: |
-          docker-compose down -v
-
-  deploy:
-    needs: build-and-test
-    if: github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
-    
-    steps:
-      - name: Deploy to Production
-        run: |
-          echo "Deploying to production..."
-          # Add your deployment steps here
-          # For example:
-          # - Push to Docker registry
-          # - Update Kubernetes deployment
-          # - Trigger cloud deployment
+          docker compose down -v
+          docker system prune -f
