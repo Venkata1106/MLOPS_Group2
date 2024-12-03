@@ -16,11 +16,11 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Install Required Utilities
+      - name: Install Docker Compose
         run: |
           sudo apt-get update
-          sudo apt-get install -y docker-compose-plugin curl jq
-          docker compose version
+          sudo apt-get install -y docker-compose curl jq
+          docker-compose version
 
       - name: Create Required Directories
         run: |
@@ -32,8 +32,8 @@ jobs:
 
       - name: Start Airflow Services
         run: |
-          docker compose build
-          docker compose up -d
+          docker-compose build
+          docker-compose up -d
         env:
           AIRFLOW_VAR_smtp_server: ${{ secrets.AIRFLOW_VAR_SMTP_SERVER }}
           AIRFLOW_VAR_smtp_port: ${{ secrets.AIRFLOW_VAR_SMTP_PORT }}
@@ -57,7 +57,7 @@ jobs:
       - name: Trigger DAG Run
         id: trigger_dag
         run: |
-          docker compose exec -T airflow-scheduler \
+          docker-compose exec -T airflow-scheduler \
             airflow dags trigger \
               -r ${{ steps.unique_id.outputs.dag_run_id }} \
               stock_prediction_pipeline
@@ -67,7 +67,7 @@ jobs:
         run: |
           echo "Polling for DAG run status..."
           while true; do
-            status=$(docker compose exec -T airflow-scheduler \
+            status=$(docker-compose exec -T airflow-scheduler \
               airflow dags state stock_prediction_pipeline ${{ steps.unique_id.outputs.dag_run_id }})
             
             echo "Current DAG run state: $status"
@@ -88,8 +88,8 @@ jobs:
         if: always()
         run: |
           mkdir -p logs
-          docker compose logs --no-color airflow-scheduler > logs/scheduler.log 2>&1
-          docker compose logs --no-color airflow-webserver > logs/webserver.log 2>&1
+          docker-compose logs --no-color airflow-scheduler > logs/scheduler.log 2>&1
+          docker-compose logs --no-color airflow-webserver > logs/webserver.log 2>&1
 
       - name: Send Email Notification
         if: always()
@@ -133,5 +133,5 @@ jobs:
       - name: Cleanup
         if: always()
         run: |
-          docker compose down -v
+          docker-compose down -v
           docker system prune -f
