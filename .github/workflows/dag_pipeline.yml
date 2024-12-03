@@ -1,0 +1,86 @@
+name: DAG Pipeline CI/CD
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'dags/**'
+  workflow_dispatch:
+
+jobs:
+  test-dag:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.9'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install apache-airflow
+          pip install -r requirements.txt
+
+      - name: Create Airflow directories
+        run: |
+          mkdir -p ./dags
+          mkdir -p ./logs
+          mkdir -p ./plugins
+          mkdir -p ./data/{raw,processed,mitigated,dvc_tracked}
+
+      - name: Set up Airflow environment
+        env:
+          AIRFLOW_HOME: ${{ github.workspace }}
+          AIRFLOW_WWW_USER_USERNAME: ${{ secrets.AIRFLOW_WWW_USER_USERNAME }}
+          AIRFLOW_WWW_USER_PASSWORD: ${{ secrets.AIRFLOW_WWW_USER_PASSWORD }}
+        run: |
+          airflow db init
+          airflow users create \
+            --username "$AIRFLOW_WWW_USER_USERNAME" \
+            --password "$AIRFLOW_WWW_USER_PASSWORD" \
+            --firstname Anonymous \
+            --lastname Admin \
+            --role Admin \
+            --email admin@example.com
+
+      - name: Test DAG Import
+        run: |
+          python -c "
+          from airflow.models import DagBag
+          dag_bag = DagBag('./dags')
+          if dag_bag.import_errors:
+              raise Exception(f'DAG import errors: {dag_bag.import_errors}')
+          dag = dag_bag.get_dag('stock_prediction_pipeline')
+          if not dag:
+              raise Exception('stock_prediction_pipeline DAG not found')
+          print('DAG import successful')
+          "
+
+      - name: Test DAG Tasks
+        env:
+          AIRFLOW_HOME: ${{ github.workspace }}
+          AIRFLOW_VAR_SMTP_SERVER: ${{ secrets.AIRFLOW_VAR_SMTP_SERVER }}
+          AIRFLOW_VAR_SMTP_PORT: ${{ secrets.AIRFLOW_VAR_SMTP_PORT }}
+          AIRFLOW_VAR_ALERT_RECIPIENT_EMAIL: ${{ secrets.AIRFLOW_VAR_ALERT_RECIPIENT_EMAIL }}
+          AIRFLOW_VAR_ALERT_SENDER_EMAIL: ${{ secrets.AIRFLOW_VAR_ALERT_SENDER_EMAIL }}
+          AIRFLOW_VAR_SMTP_USERNAME: ${{ secrets.AIRFLOW_VAR_SMTP_USERNAME }}
+          AIRFLOW_VAR_SMTP_PASSWORD: ${{ secrets.AIRFLOW_VAR_SMTP_PASSWORD }}
+          AIRFLOW_PASSWORD: ${{ secrets.AIRFLOW_PASSWORD }}
+          AIRFLOW_SECRET_KEY: ${{ secrets.AIRFLOW_SECRET_KEY }}
+        run: |
+          airflow variables import vars.json || true
+          airflow dags test stock_prediction_pipeline $(date -I)
+
+      - name: Upload Airflow logs
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: airflow-logs
+          path: logs/
+          retention-days: 7 
