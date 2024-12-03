@@ -6,7 +6,7 @@ x-airflow-common: &airflow-common
     dockerfile: docker/airflow/Dockerfile
   environment: &airflow-common-env
     AIRFLOW__CORE__EXECUTOR: LocalExecutor
-    AIRFLOW__CORE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres/airflow
+    AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres/airflow
     AIRFLOW__CORE__LOAD_EXAMPLES: 'false'
     AIRFLOW__CORE__FERNET_KEY: ''
     PYTHONPATH: /opt/airflow/dags:/opt/airflow/plugins:/opt/airflow
@@ -48,9 +48,9 @@ services:
       - "8080:8080"
     healthcheck:
       test: ["CMD", "curl", "--fail", "http://localhost:8080/health"]
-      interval: 10s
+      interval: 20s
       timeout: 10s
-      retries: 5
+      retries: 10
     restart: always
     env_file:
       - .env
@@ -64,7 +64,12 @@ services:
 
   airflow-init:
     <<: *airflow-common
-    command: bash -c "airflow db init && airflow users create --username admin --password admin --firstname Anonymous --lastname Admin --role Admin --email admin@example.com"
+    command: bash -c "
+      mkdir -p /opt/airflow/logs /opt/airflow/logs/scheduler &&
+      chmod -R 777 /opt/airflow/logs &&
+      until pg_isready -h postgres -U airflow; do sleep 1; done;
+      airflow db init &&
+      airflow users list | grep -q 'admin' || airflow users create --username admin --password admin --firstname Admin --lastname Admin --role Admin --email admin@example.com"
     environment:
       <<: *airflow-common-env
       _AIRFLOW_DB_UPGRADE: 'true'
@@ -76,4 +81,4 @@ services:
         condition: service_healthy
 
 volumes:
-  postgres-db-volume: 
+  postgres-db-volume:

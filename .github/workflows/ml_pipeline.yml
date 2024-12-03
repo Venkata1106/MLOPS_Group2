@@ -1,4 +1,4 @@
-name: Model Training Pipeline
+name: ML Pipeline
 
 on:
   push:
@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  train-model:
+  model-training:
     runs-on: ubuntu-latest
     permissions:
       contents: read
