@@ -14,25 +14,24 @@ jobs:
 
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v3
-        with:
-          fetch-depth: 0
+        uses: actions/checkout@v4
 
       - name: Set up Python
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v5
         with:
           python-version: '3.9'
+          cache: 'pip'
 
       - name: Set up DVC
         uses: iterative/setup-dvc@v1
 
       - name: Configure GCP Credentials
-        uses: google-github-actions/auth@v1
+        uses: google-github-actions/auth@v2
         with:
           credentials_json: ${{ secrets.GCP_CREDENTIALS }}
 
       - name: Set up Cloud SDK
-        uses: google-github-actions/setup-gcloud@v1
+        uses: google-github-actions/setup-gcloud@v2
 
       - name: Install dependencies
         run: |
@@ -50,18 +49,16 @@ jobs:
         env:
           GOOGLE_APPLICATION_CREDENTIALS: ${{ github.workspace }}/credentials/latest.json
         run: |
-          # Create credentials directory and save GCP credentials
           mkdir -p credentials
           echo '${{ secrets.GCP_CREDENTIALS }}' > credentials/latest.json
-          
-          # Run training
           python -m models.train
 
       - name: Upload MLflow Artifacts
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: mlflow-artifacts
           path: mlruns/
+          retention-days: 90
 
       - name: Clean up credentials
         if: always()
