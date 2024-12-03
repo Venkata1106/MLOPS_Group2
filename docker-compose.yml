@@ -10,12 +10,12 @@ x-airflow-common: &airflow-common
     AIRFLOW__CORE__LOAD_EXAMPLES: 'false'
     AIRFLOW__CORE__FERNET_KEY: ''
     PYTHONPATH: /opt/airflow/dags:/opt/airflow/plugins:/opt/airflow
-    AIRFLOW_VAR_smtp_server: smtp.gmail.com
-    AIRFLOW_VAR_smtp_port: 587
-    AIRFLOW_VAR_alert_sender_email: ananthareddy12321@gmail.com
-    AIRFLOW_VAR_alert_recipient_email: dheerajkumar.1379@gmail.com
-    AIRFLOW_VAR_smtp_username: ananthareddy12321@gmail.com
-    AIRFLOW_VAR_smtp_password: jaei dczj aokn fcaf
+    AIRFLOW_VAR_smtp_server: ${AIRFLOW_VAR_smtp_server:-smtp.gmail.com}
+    AIRFLOW_VAR_smtp_port: ${AIRFLOW_VAR_smtp_port:-587}
+    AIRFLOW_VAR_alert_sender_email: ${AIRFLOW_VAR_alert_sender_email}
+    AIRFLOW_VAR_alert_recipient_email: ${AIRFLOW_VAR_alert_recipient_email}
+    AIRFLOW_VAR_smtp_username: ${AIRFLOW_VAR_smtp_username}
+    AIRFLOW_VAR_smtp_password: ${AIRFLOW_VAR_smtp_password}
   volumes:
     - ./dags:/opt/airflow/dags
     - ./logs:/opt/airflow/logs
@@ -52,33 +52,25 @@ services:
       timeout: 10s
       retries: 10
     restart: always
-    env_file:
-      - .env
 
   airflow-scheduler:
     <<: *airflow-common
     command: scheduler
     restart: always
-    env_file:
-      - .env
 
   airflow-init:
     <<: *airflow-common
     command: bash -c "
       mkdir -p /opt/airflow/logs /opt/airflow/logs/scheduler &&
       chmod -R 777 /opt/airflow/logs &&
-      until pg_isready -h postgres -U airflow; do sleep 1; done;
       airflow db init &&
-      airflow users list | grep -q 'admin' || airflow users create --username admin --password admin --firstname Admin --lastname Admin --role Admin --email admin@example.com"
+      airflow users create --username admin --password admin --firstname Admin --lastname Admin --role Admin --email admin@example.com"
     environment:
       <<: *airflow-common-env
       _AIRFLOW_DB_UPGRADE: 'true'
       _AIRFLOW_WWW_USER_CREATE: 'true'
       _AIRFLOW_WWW_USER_USERNAME: ${_AIRFLOW_WWW_USER_USERNAME:-admin}
       _AIRFLOW_WWW_USER_PASSWORD: ${_AIRFLOW_WWW_USER_PASSWORD:-admin}
-    depends_on:
-      postgres:
-        condition: service_healthy
 
 volumes:
   postgres-db-volume:
