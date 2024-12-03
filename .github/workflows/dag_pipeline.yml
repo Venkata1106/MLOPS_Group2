@@ -1,4 +1,4 @@
-name: Stock Prediction Pipeline with Email Notifications
+name: Stock Prediction Pipeline
 
 on:
   workflow_dispatch:
@@ -9,129 +9,81 @@ on:
       - 'src/**'
 
 jobs:
-  setup-and-trigger:
+  trigger-dag:
     runs-on: ubuntu-latest
-    
+
     steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v4
+    - name: Install Required Utilities
+      run: sudo apt-get update && sudo apt-get install -y curl jq
 
-      - name: Install Docker Compose
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y docker-compose curl jq
-          docker-compose version
+    - name: Generate Unique DAG Run ID
+      id: unique_id
+      run: echo "dag_run_id=stock_prediction_$(date +'%Y%m%d%H%M%S')" >> $GITHUB_OUTPUT
 
-      - name: Create Required Directories
-        run: |
-          mkdir -p ./dags
-          mkdir -p ./logs
-          mkdir -p ./plugins
-          mkdir -p ./data/{raw,processed,mitigated}
-          chmod -R 777 ./logs
+    - name: Trigger Airflow DAG
+      id: trigger_dag
+      env:
+        AIRFLOW_USERNAME: admin
+        AIRFLOW_PASSWORD: ksmhwqrzhjllqsaz
+        AIRFLOW_VM_IP: 35.188.27.227:8080
+        AIRFLOW_DAG_ID: stock_prediction_pipeline
+      run: |
+        echo "Triggering Airflow DAG: $AIRFLOW_DAG_ID with unique DAG Run ID..."
+        curl -X POST "http://$AIRFLOW_VM_IP/api/v1/dags/$AIRFLOW_DAG_ID/dagRuns" \
+             -H "Content-Type: application/json" \
+             -u "$AIRFLOW_USERNAME:$AIRFLOW_PASSWORD" \
+             -d "{\"dag_run_id\": \"${{ steps.unique_id.outputs.dag_run_id }}\"}"
 
-      - name: Start Airflow Services
-        run: |
-          docker-compose build
-          docker-compose up -d
-        env:
-          AIRFLOW_VAR_smtp_server: ${{ secrets.AIRFLOW_VAR_SMTP_SERVER }}
-          AIRFLOW_VAR_smtp_port: ${{ secrets.AIRFLOW_VAR_SMTP_PORT }}
-          AIRFLOW_VAR_alert_sender_email: ${{ secrets.AIRFLOW_VAR_ALERT_SENDER_EMAIL }}
-          AIRFLOW_VAR_alert_recipient_email: ${{ secrets.AIRFLOW_VAR_ALERT_RECIPIENT_EMAIL }}
-          AIRFLOW_VAR_smtp_username: ${{ secrets.AIRFLOW_VAR_SMTP_USERNAME }}
-          AIRFLOW_VAR_smtp_password: ${{ secrets.AIRFLOW_VAR_SMTP_PASSWORD }}
+    - name: Wait for DAG Completion
+      id: wait_for_completion
+      env:
+        AIRFLOW_USERNAME: admin
+        AIRFLOW_PASSWORD: ksmhwqrzhjllqsaz
+        AIRFLOW_VM_IP: 35.188.27.227:8080
+        AIRFLOW_DAG_ID: stock_prediction_pipeline
+        DAG_RUN_ID: ${{ steps.unique_id.outputs.dag_run_id }}
+      run: |
+        echo "Polling for DAG run status..."
+        while true; do
+          status=$(curl -s -u "$AIRFLOW_USERNAME:$AIRFLOW_PASSWORD" \
+            "http://$AIRFLOW_VM_IP/api/v1/dags/$AIRFLOW_DAG_ID/dagRuns/$DAG_RUN_ID" \
+            | jq -r '.state')
+          echo "Current DAG run state: $status"
+          if [ "$status" == "success" ]; then
+            echo "DAG run completed successfully!"
+            break
+          elif [ "$status" == "failed" ]; then
+            echo "DAG run failed!"
+            exit 1
+          else
+            echo "DAG is still running. Waiting..."
+            sleep 10
+          fi
+        done
 
-      - name: Wait for Airflow
-        run: |
-          echo "Waiting for Airflow to be ready..."
-          timeout 120s bash -c 'until curl -s http://localhost:8080/health > /dev/null; do 
-            echo "Waiting for Airflow webserver..."; 
-            sleep 10; 
-          done'
+    - name: Send Email Notification
+      if: always()
+      env:
+        SMTP_SERVER: smtp.gmail.com
+        SMTP_PORT: 587
+        EMAIL_USERNAME: ananthareddy12321@gmail.com
+        EMAIL_PASSWORD: ${{ secrets.AIRFLOW_VAR_SMTP_PASSWORD }}
+        RECIPIENT_EMAIL: dheerajkumar.1379@gmail.com
+      run: |
+        echo "Stock Prediction Pipeline Status Notification"
+        (
+          echo "Subject: Stock Prediction Pipeline Status: ${{ job.status }}"
+          echo "To: $RECIPIENT_EMAIL"
+          echo "Content-Type: text/html"
+          echo ""
+          echo "<h2>Stock Prediction Pipeline Run Status</h2>"
+          echo "<p>DAG Run ID: ${{ steps.unique_id.outputs.dag_run_id }}</p>"
+          echo "<p>Status: ${{ job.status }}</p>"
+          echo "<p>Timestamp: $(date)</p>"
+        ) > email.txt
 
-      - name: Generate Unique DAG Run ID
-        id: unique_id
-        run: echo "dag_run_id=stock_prediction_$(date +'%Y%m%d%H%M%S')" >> $GITHUB_OUTPUT
-
-      - name: Trigger DAG Run
-        id: trigger_dag
-        run: |
-          docker-compose exec -T airflow-scheduler \
-            airflow dags trigger \
-              -r ${{ steps.unique_id.outputs.dag_run_id }} \
-              stock_prediction_pipeline
-
-      - name: Wait for DAG Completion
-        id: wait_for_completion
-        run: |
-          echo "Polling for DAG run status..."
-          while true; do
-            status=$(docker-compose exec -T airflow-scheduler \
-              airflow dags state stock_prediction_pipeline ${{ steps.unique_id.outputs.dag_run_id }})
-            
-            echo "Current DAG run state: $status"
-            
-            if [ "$status" == "success" ]; then
-              echo "DAG run completed successfully!"
-              break
-            elif [ "$status" == "failed" ]; then
-              echo "DAG run failed!"
-              exit 1
-            else
-              echo "DAG is still running. Waiting..."
-              sleep 30
-            fi
-          done
-
-      - name: Collect Airflow Logs
-        if: always()
-        run: |
-          mkdir -p logs
-          docker-compose logs --no-color airflow-scheduler > logs/scheduler.log 2>&1
-          docker-compose logs --no-color airflow-webserver > logs/webserver.log 2>&1
-
-      - name: Send Email Notification
-        if: always()
-        env:
-          SMTP_SERVER: ${{ secrets.AIRFLOW_VAR_SMTP_SERVER }}
-          SMTP_PORT: ${{ secrets.AIRFLOW_VAR_SMTP_PORT }}
-          EMAIL_USERNAME: ${{ secrets.AIRFLOW_VAR_SMTP_USERNAME }}
-          EMAIL_PASSWORD: ${{ secrets.AIRFLOW_VAR_SMTP_PASSWORD }}
-          RECIPIENT_EMAIL: ${{ secrets.AIRFLOW_VAR_ALERT_RECIPIENT_EMAIL }}
-        run: |
-          echo "Stock Prediction Pipeline Status Notification"
-          (
-            echo "Subject: Stock Prediction Pipeline Status: ${{ job.status }}"
-            echo "To: $RECIPIENT_EMAIL"
-            echo "Content-Type: text/html"
-            echo ""
-            echo "<h2>Stock Prediction Pipeline Run Status</h2>"
-            echo "<p>DAG Run ID: ${{ steps.unique_id.outputs.dag_run_id }}</p>"
-            echo "<p>Status: ${{ job.status }}</p>"
-            echo "<p>Timestamp: $(date)</p>"
-            echo "<h3>Recent Logs:</h3>"
-            echo "<pre>"
-            tail -n 50 logs/scheduler.log
-            echo "</pre>"
-          ) > email.txt
-
-          curl --url "smtp://$SMTP_SERVER:$SMTP_PORT" --ssl-reqd \
-            --mail-from "$EMAIL_USERNAME" \
-            --mail-rcpt "$RECIPIENT_EMAIL" \
-            --upload-file email.txt \
-            --user "$EMAIL_USERNAME:$EMAIL_PASSWORD"
-
-      - name: Upload Logs as Artifacts
-        if: always()
-        uses: actions/upload-artifact@v3
-        with:
-          name: airflow-logs
-          path: logs/
-          retention-days: 7
-
-      - name: Cleanup
-        if: always()
-        run: |
-          docker-compose down -v
-          docker system prune -f
+        curl --url "smtp://$SMTP_SERVER:$SMTP_PORT" --ssl-reqd \
+          --mail-from "$EMAIL_USERNAME" \
+          --mail-rcpt "$RECIPIENT_EMAIL" \
+          --upload-file email.txt \
+          --user "$EMAIL_USERNAME:$EMAIL_PASSWORD"
