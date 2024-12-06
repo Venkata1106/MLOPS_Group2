@@ -3,14 +3,30 @@ provider "google" {
   region  = var.region
 }
 
-resource "google_artifact_registry_repository" "model_registry" {
-  location      = var.region
-  repository_id = "vertex-ai-models"
-  format        = "docker"
+# Enable required APIs
+resource "google_project_service" "vertex_ai" {
+  service = "aiplatform.googleapis.com"
+  disable_on_destroy = false
 }
 
+resource "google_project_service" "cloud_build" {
+  service = "cloudbuild.googleapis.com"
+  disable_on_destroy = false
+}
+
+# Create Vertex AI endpoint
 resource "google_vertex_ai_endpoint" "prediction_endpoint" {
-  name         = "stock-prediction-endpoint"
+  display_name = "stock-prediction-endpoint"
   location     = var.region
-  display_name = "Stock Price Prediction Endpoint"
+  
+  depends_on = [
+    google_project_service.vertex_ai
+  ]
+}
+
+# Create Cloud Storage bucket for artifacts
+resource "google_storage_bucket" "model_artifacts" {
+  name     = "${var.project_id}-model-artifacts"
+  location = var.region
+  force_destroy = true
 } 
