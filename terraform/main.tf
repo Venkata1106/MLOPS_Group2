@@ -16,6 +16,7 @@ resource "google_project_service" "cloud_build" {
 
 # Create Vertex AI endpoint
 resource "google_vertex_ai_endpoint" "prediction_endpoint" {
+  name         = "stock-prediction-endpoint"
   display_name = "stock-prediction-endpoint"
   location     = var.region
   
