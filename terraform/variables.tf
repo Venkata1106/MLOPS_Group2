@@ -1,6 +1,6 @@
 variable "project_id" {
   description = "GCP Project ID"
-  default     = "322603165747"
+  default     = "team02-441605"
 }
 
 variable "region" {
