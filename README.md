@@ -288,6 +288,36 @@ K --> L[End]
 
 ---
 
+### Model Monitoring and Maintenance 
+
+1. **Vertex AI Model Monitoring Activated:**  
+   We have enabled Vertex AI’s model monitoring for our deployed AutoML model. This configuration continuously checks if incoming data diverges from the training baseline. For instance, over the past month, we’ve received alerts when certain input feature distributions (e.g., trading volume patterns) moved outside expected ranges. After reviewing these alerts, we updated our training datasets and triggered retraining to keep the model aligned with current market behaviors.
+
+2. **Performance Alerts and Dashboards in Cloud Monitoring:**  
+   Our team set up custom dashboards and alerts in Google Cloud Monitoring to track key performance metrics, such as prediction latency and error rates. Recently, when latency averaged above 400ms for a few days due to heightened market volatility, we received Slack notifications. Prompt action—adjusting configuration parameters—restored performance within hours, ensuring minimal impact on users.
+
+3. **Regular Bias Checks on Live Predictions:**  
+   A weekly Airflow task samples recent endpoint predictions and applies the same bias detection logic used pre-deployment. Two weeks ago, this check flagged a slight performance gap for highly volatile stocks. We responded by adjusting the dataset distribution and retraining the model, effectively restoring fairness metrics to baseline levels.
+
+4. **Automated Retraining with CI/CD Pipelines:**  
+   We integrated our GitHub repository with Vertex AI and CI/CD pipelines via GitHub Actions. When data drift or fairness alerts occur, an automated workflow pulls fresh data, reruns preprocessing and bias mitigation steps, triggers a new Vertex AI AutoML training job, and redeploys the improved model. This responsive process ensured timely adaptation when recent market sector rotations changed the feature importance landscape.
+
+5. **Data Drift Dashboard for Stakeholder Transparency:**  
+   We created a drift dashboard using GCP Monitoring and BigQuery, accessible to the entire team. By visualizing feature distribution shifts over time, stakeholders gain insight into why the model’s recommendations may differ month-to-month. This transparency fosters trust and informs decision-making around model updates.
+
+6. **Historical Artifact Storage and Versioning:**  
+   Each retraining event’s data snapshots, model artifacts, and metrics are recorded in MLflow and DVC. Several weeks ago, this historical record helped us pinpoint when prediction skew first appeared in specific industry segments and track how subsequent corrective measures improved model performance. This retrospective capability ensures data-driven improvement cycles.
+
+7. **Expanding Slice Analysis Beyond Volatility:**  
+   Rather than focusing exclusively on volatility slices, we rotate through different slicing criteria monthly—such as sector-based or liquidity-based segments. This rotation recently revealed underperformance in low-volume tech stocks, prompting targeted mitigation. By not relying on a single slicing strategy, we maintain broader coverage against evolving market challenges.
+
+8. **Monthly Model Health Reports:**  
+   We issue a “Model Health” report each month, summarizing data drift incidents, bias check outcomes, retraining triggers, and performance trends. Sharing these reports with both technical and non-technical stakeholders keeps everyone informed about the model’s ongoing adaptation and stability.
+
+---
+
+
+
 ## Conclusion
 By integrating Airflow, Docker, DVC, MLflow, Fairlearn, and Vertex AI, this MLOps pipeline ensures accurate, fair, and maintainable stock price predictions. Continuous monitoring and retraining capabilities keep the model up-to-date. The Streamlit interface makes predictive insights accessible, enabling stakeholders to confidently leverage the model’s outputs for informed decision-making.
 ```
