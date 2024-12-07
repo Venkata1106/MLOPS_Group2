@@ -1,4 +1,3 @@
-```markdown
 # Stock Price Prediction
 
 [![Python](https://img.shields.io/badge/Python-3.x-blue.svg)](https://www.python.org/)
@@ -301,4 +300,3 @@ A small-scale setup might cost around ~$30-$60/month, escalating with increased 
 ## Conclusion
 
 This MLOps solution delivers a robust, scalable, and fair pipeline for stock price prediction. By integrating top-tier tools—Airflow, Docker, DVC, MLflow, Vertex AI, and Fairlearn—the pipeline ensures reliable data handling, transparent model experimentation, thorough fairness checks, automated deployment, and continuous monitoring. The Streamlit interface makes predictive insights accessible and actionable, enabling data-driven decision-making with confidence.
-```
