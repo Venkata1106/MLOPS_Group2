@@ -74,13 +74,7 @@ These additional features help the model understand trends and patterns in stock
    ```
    Ensures correct version of data is used.
 
-6. **MLflow UI for Experiment Tracking:**
-   ```bash
-   mlflow ui
-   ```
-   Open `http://localhost:5000` to view experiment runs, metrics, and artifacts.
 
----
 
 ## Data Pipeline Steps (What’s Happening)
 
@@ -115,91 +109,94 @@ These additional features help the model understand trends and patterns in stock
 
 ---
 
-## MODEL DEVELOPMENT 
+### MODEL DEVELOPMENT 
 
-After obtaining a clean, bias-mitigated dataset, we focus on model development:
+After the data pipeline provides a refined, bias-mitigated dataset, our focus shifts to **Model Development**. Here, we transform prepared data into a well-performing, fair, and interpretable predictive model. This phase is iterative, involving training, evaluation, fine-tuning, bias correction, explainability analysis, and thorough record-keeping.
 
-1. **Data Loading & Splitting (data_loader.py):**  
-   Splits processed data into training, validation, and test sets. Ensures the model sees stable input and the final evaluation is unbiased.
+**Key Objectives:**
+- Convert preprocessed data into model-ready formats.
+- Explore multiple ML algorithms to find a strong performer.
+- Fine-tune hyperparameters to balance accuracy and robustness.
+- Continuously check and rectify biases to ensure fairness.
+- Validate the final model to ensure reliable real-world performance.
+- Log every experiment (with parameters, metrics, and results) for transparency and reproducibility.
+- Understand why the model makes certain predictions using explainability tools.
+- Store the chosen model in a registry for easy retrieval and deployment.
 
-2. **Model Training (model.py):**  
-   Trains multiple models (e.g., Random Forest, XGBoost). Trying multiple algorithms increases chances of finding a well-generalizing model.
+**Detailed Steps**
 
-3. **Hyperparameter Tuning (hyperparameter_tuner.py):**  
-   Systematically searches for the best model parameters, improving accuracy and robustness against overfitting.
+1. **Data Loading & Splitting (`data_loader.py`):**  
+   This script retrieves the processed dataset and splits it into training, validation, and test subsets.  
+   - **Training Set:** Teaches the model patterns and trends.  
+   - **Validation Set:** Helps tune hyperparameters and compare different models without overfitting.  
+   - **Test Set:** Provides a final, unbiased measure of performance.  
+   
+   By segregating data this way, we maintain an honest benchmark and ensure that improvements in model performance are genuine.
 
-4. **Bias Checking (bias_checker.py):**  
-   Re-checks predictions for unfair patterns. If bias persists, adjustments are made until fairness improves.
+2. **Model Training (`model.py`):**  
+   Here we train multiple models (e.g., Random Forest, XGBoost). Trying diverse algorithms increases the chance of finding one well-suited to the market’s complexity. Some models excel in handling noise, while others can uncover subtle patterns. Training multiple candidates sets the stage for a fair, data-driven selection process.
 
-5. **Model Validation & Selection (model_validator.py & model_selector.py):**  
-   The model validator tests performance on a test set, ensuring it generalizes well. The model selector then picks the model that best balances accuracy and fairness.
+3. **Hyperparameter Tuning (`hyperparameter_tuner.py`):**  
+   Optimal hyperparameters often distinguish a good model from a great one. This script systematically explores parameter combinations—like the number of trees in a forest or the learning rate for a boosting model. The result is a model that’s both more accurate and more stable over time, reducing the risk of overfitting.
 
-6. **Experiment Tracking (experiment_tracker.py):**  
-   MLflow logs all runs, parameters, and metrics. This makes it easy to compare models and pick the best approach.
+4. **Bias Checking (`bias_checker.py`):**  
+   Fairness is not guaranteed by a single mitigation step. After training, we re-check the model’s predictions across various slices (e.g., volatility ranges) to detect residual bias. If certain subsets perform poorly, we re-tune or re-sample until fairness metrics improve, ensuring equitable treatment across all data segments.
 
-7. **Explainability (sensitivity_analyzer.py):**  
-   Tools like SHAP and LIME provide feature importance and interpretability, letting you understand which factors most influence predictions.
+5. **Model Validation & Selection (`model_validator.py` & `model_selector.py`):**  
+   - **Model Validator:** Uses the test set to provide unbiased performance metrics (e.g., MSE, MAE).  
+   - **Model Selector:** Ranks candidates by accuracy, fairness, and stability, choosing the model that best meets our criteria.  
+   
+   This two-step approach prevents deploying a model that merely “seems good” on training data but fails on unseen scenarios.
 
-8. **Model Registry (model_registry.py):**  
-   Saves the final chosen model version for easy retrieval and deployment. No confusion about which model is live—just the best one.
+6. **Experiment Tracking (`experiment_tracker.py`):**  
+   We leverage MLflow to log each run’s parameters, metrics, and artifacts. Historical records allow us to revisit past successes and failures, identify what worked well, and justify final choices to stakeholders. This ensures no valuable insight is lost during model iteration.
+
+7. **Explainability (`sensitivity_analyzer.py`):**  
+   Tools like SHAP and LIME clarify why the model makes certain predictions, revealing feature importance and dependencies. This transparency helps stakeholders trust the model and guides future improvements—if a model relies too heavily on a volatile feature, we can adjust the feature set or parameter tuning strategies.
+
+8. **Model Registry (`model_registry.py`):**  
+   Once the best model emerges, we store it in a registry—an authoritative record of the chosen model version. This eliminates confusion over which model is live, simplifies rollbacks if needed, and supports CI/CD pipelines for continuous improvement and reliable deployment.
 
 ---
 
-## Folder Structure Overview (Key Files)
+### Folder Structure Overview
+
+
 ```bash
 MLOPS_Group2/
-├── README.md
-├── requirements.txt
-├── modelrequire.txt
-├── docker-compose.yml
-├── cloudbuild.yaml
+├── README.md                        # Project overview and instructions
+├── requirements.txt                 # Dependencies for pipeline and training
+├── modelrequire.txt                 # Additional dependencies for modeling & explainability
+├── docker-compose.yml               # Config for running services (e.g., Airflow) in Docker
+├── cloudbuild.yaml                  # CI/CD config (Google Cloud Build)
 ├── config/
-│   ├── model_config.yml
-│   └── pipeline_config.yml
+│   ├── model_config.yml             # Model-specific parameters & hyperparameter ranges
+│   └── pipeline_config.yml          # Pipeline-level configurations (paths, schedules)
+├── credentials/                     # Encrypted credentials (not committed)
 ├── data/
-│   ├── raw.dvc
-│   ├── processed.dvc
-│   ├── mitigated/
-│   └── stats/
+│   ├── raw.dvc                      # DVC tracking for raw data versions
+│   ├── processed.dvc                # DVC tracking for processed data versions
+│   ├── mitigated/                   # Bias-mitigated datasets
+│   └── stats/                       # Statistics, bias metrics, validation datasets
 ├── dags/
-│   └── stock_prediction_dag.py
+│   └── stock_prediction_dag.py      # Airflow DAG orchestrating data pipeline & model runs
 ├── docker/
 │   └── airflow/
-│       └── Dockerfile
+│       └── Dockerfile               # Dockerfile for building Airflow environment
 ├── docs/
-│   └── bias_mitigation.md
+│   └── bias_mitigation.md           # Documentation on bias detection & mitigation strategies
 ├── images/
-│   ├── DAG.jpeg
-│   └── Gantt.jpeg
+│   ├── DAG.jpeg                     # Visual representation of the Airflow DAG
+│   └── Gantt.jpeg                   # Project timeline or Gantt chart
 ├── models/
-│   ├── bias_checker.py
-│   ├── data_loader.py
-│   ├── experiment_tracker.py
-│   ├── hyperparameter_tuner.py
-│   ├── model.py
-│   ├── model_registry.py
-│   ├── model_selector.py
-│   ├── model_validator.py
-│   ├── sensitivity_analyzer.py
-│   ├── train.py
-│   └── utils/
-│       └── logger.py
-├── model_results/
-│   ├── metrics_heatmap.png
-│   └── performance_comparison.png
-└── src/
-    ├── data_acquisition.py
-    ├── data_preprocessing.py
-    ├── data_validation.py
-    ├── bias_detection.py
-    ├── bias_mitigation.py
-    ├── slice_analysis.py
-    └── utils/
-        ├── logging_config.py
-        └── monitoring.py
-```
+│   ├── bias_checker.py              # Checks model predictions for fairness issues
+│   ├── bias_detection/              # Additional modules for slice-based bias metrics
+│   ├── data_loader.py               # Splits processed data into train/val/test sets
+│   ├── experiment_tracker.py        # Integrates with MLflow for logging experiments
+│   ├── hyperparameter_tuner.py      # Automates search for optimal model hyperparameters
+│   ├── model.py                     # Core training logic for ML models (e.g., RF, XGBoost)
+│   ├── model_registry.py            # Manages final chosen model v
 
----
 
 ## Running Model Scripts
 
@@ -212,7 +209,13 @@ Train and evaluate models:
 ```bash
 python models/train.py
 ```
+**MLflow UI for Experiment Tracking:**
+   ```bash
+   mlflow ui
+   ```
+   Open `http://localhost:5000` to view experiment runs, metrics, and artifacts.
 
+---
 ### Visualizations & Results
 - **metrics_heatmap.png & performance_comparison.png:** Visual comparisons of model runs and hyperparameters.
 - **Bias Reports:** JSON/PNG files showing if certain groups underperform.
