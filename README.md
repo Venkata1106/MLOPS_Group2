@@ -1,5 +1,10 @@
 # Stock Price Prediction
 
+# Video Link
+The full video right from creating the project till data drift and model decay is the following:
+
+https://tinyurl.com/3tmrfadv 
+
 [![Python](https://img.shields.io/badge/Python-3.x-blue.svg)](https://www.python.org/)
 [![Docker](https://img.shields.io/badge/Docker-Compatible-brightgreen.svg)](https://www.docker.com/)
 [![Apache Airflow](https://img.shields.io/badge/Airflow-Pipeline-yellowgreen.svg)](https://airflow.apache.org/)
