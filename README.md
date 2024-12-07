@@ -1,244 +1,294 @@
+
+
+---
+
+```markdown
 # Stock Price Prediction
 
 [![Python](https://img.shields.io/badge/Python-3.x-blue.svg)](https://www.python.org/)
-[![Docker](https://img.shields.io/badge/Docker-Compatible-brightgreen.svg)](https://www.docker.com/)
+[![Docker](https://img.shields.io/badge/Docker-Compatible-green.svg)](https://www.docker.com/)
 [![Apache Airflow](https://img.shields.io/badge/Airflow-Pipeline-yellowgreen.svg)](https://airflow.apache.org/)
+[![Vertex AI](https://img.shields.io/badge/Vertex%20AI-Deployment-blueviolet.svg)](https://cloud.google.com/vertex-ai)
 
-- [Venkata Anantha Reddy Arikatla](https://github.com/Venkata1106)
-- [Dheeraj Kumar Goli](https://github.com/dheeraj932)
-- [Shubhang Yadav Sandaveni](https://github.com/sandavenishubhang)
-- [Manasi Bondalapati](https://github.com/thunderblu)
-- [Sachi Hareshkumar Patel](https://github.com/Sachiprogrammer)
-- [Pranav Pinjarla](https://github.com/pranav10510)
+---
 
-<p align="center">  
-    <br>
-	<a href="#">
-	      <img src="https://raw.githubusercontent.com/Thomas-George-T/Thomas-George-T/master/assets/python.svg" alt="Python" title="Python" width ="120" />
-        <img height=100 src="https://cdn.svgporn.com/logos/airflow-icon.svg" alt="Airflow" title="Airflow" hspace=20 /> 
-        <img height=100 src="https://cdn.svgporn.com/logos/docker-icon.svg" alt="Docker" title="Docker" hspace=20 /> 
-  </a>	
-</p>
-<br>
+## Video Link
+[Click Here to Watch the Project Walkthrough Video](#)  
+*(Replace `#` with the actual video URL.)*
 
-# Introduction 
-In today’s rapidly evolving financial landscape, investors seek tools that empower them to make smarter, well-timed investment decisions, optimizing returns while managing risk. This project addresses that need by creating a comprehensive pipeline for stock market analysis and price prediction, offering actionable insights to support investment strategies and enhance financial security. Leveraging historical data from the yfinance library, it builds an advanced forecasting model using Long Short-Term Memory (LSTM) networks and Random Forest to capture subtle patterns in stock price fluctuations. Key metrics—open, close, high, low, and volume—form the foundation of the model, enabling investors to anticipate price trends and make informed choices on when to buy, sell, or hold stocks. Beyond predictions, the pipeline ensures data integrity and reliability through data validation, anomaly detection, and bias mitigation. A DataValidator class verifies schema accuracy, data type consistency, and date continuity, while a BiasAnalyzer and AnomalyDetector guard against hidden biases and detect unusual activity in price, volume, and volatility. The StockAnalyzer further enhances insights by exploring return metrics, price trends, volume fluctuations, and technical indicators, offering a multi-dimensional view of stock performance. This end-to-end solution enables investors to make data-driven choices that reduce risks, align with financial goals, and build wealth strategically in a competitive market. 
+---
 
-# Dataset Information
+## Introduction
+This project demonstrates a complete MLOps pipeline for predicting stock prices. It starts from raw financial market data and takes you through a series of automated steps: data ingestion, cleaning, feature engineering, bias detection and mitigation, anomaly analysis, model training with hyperparameter tuning, experiment tracking using MLflow, and finally deploying the best-performing and fairest model to a Vertex AI endpoint on Google Cloud. A Streamlit-based front-end gives users a friendly interface to interact with the model’s predictions.
 
-This repository includes comprehensive historical stock data for all stocks over various periods. The datasets consistently include the following features:
+In essence, we’re building a pipeline that ensures every stage—**from data to deployed model**—is reliable, reproducible, transparent, and continuously monitored for performance and fairness.
 
-- **Daily Stock Price Details:**
-  - Date
-  - Open
-  - High
-  - Low
-  - Close
-  - Adjusted Close
-  - Volume
+---
 
-- **Calculated Metrics:**
-  - Daily Returns
-  - Moving Averages (e.g., 5-day and 20-day)
+## Dataset Information
 
-- **Technical Indicators:**
-  - Volatility
+**Data Source:** Yahoo Finance (via `yfinance`).
 
-- **Additional Features (in some datasets):**
-  - Anomaly Detection Flags
+**Data Size:** About 252 rows × 7 columns of daily stock data per year per ticker.
 
-## Data Card
-- Size: Varies depending on the ticker, period, and data type requested
-- Typical Data Shape: For historical data over one year, e.g., 252 rows × 7 columns for daily prices
+**Features:**
+- **Core:** Date, Open, High, Low, Close, Adj Close, Volume
+- **Derived:** Returns, Moving Averages (MA5, MA20), Volatility, and Anomaly Flags.
 
-## Data Types
+These additional features help the model understand trends and patterns in stock price movements over time.
+
+---
+
+## Prerequisites
+- **Python 3.8+**
+- **Docker & Docker Compose** for reproducible environments
+- **Apache Airflow 2.x** for pipeline orchestration
+- **DVC** (Data Version Control) to track data changes
+- **MLflow** for logging experiments, parameters, and metrics
+- **Vertex AI (GCP)** for automated model training (AutoML) and scalable deployment
+- Optionally, **Terraform** for infrastructure provisioning
+- Libraries: `pandas`, `yfinance`, `scikit-learn`, `xgboost`, `fairlearn`, `shap`, `lime`
+
+---
+
+## Steps to Execute the Data Pipeline
+
+1. **Clone the Repository:**
+   ```bash
+   git clone https://github.com/Venkata1106/MLOPS_Group2.git
+   cd MLOPS_Group2
+   ```
+
+2. **Install Dependencies:**
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+3. **Run Docker & Airflow Setup:**
+   ```bash
+   docker-compose up --build
+   ```
+   Access Airflow at `http://localhost:8080` (Credentials: admin/admin).
+
+4. **Trigger Airflow DAG:**
+   In the Airflow UI, start the `stock_prediction_dag`.
+
+5. **DVC (Optional):**
+   ```bash
+   dvc pull
+   ```
+   Ensures correct version of data is used.
+
+6. **MLflow UI for Experiment Tracking:**
+   ```bash
+   mlflow ui
+   ```
+   Open `http://localhost:5000` to compare experiment runs.
+
+---
+
+## Data Pipeline Steps (What’s Happening at Each Stage)
+
+1. **Data Acquisition:**  
+   The pipeline fetches raw historical stock data using `yfinance`. Think of it as downloading a CSV of daily prices directly from Yahoo Finance’s API.
+
+2. **Preprocessing & Validation:**  
+   We clean the data, handle missing values, and create new features like daily returns or moving averages. Validation steps ensure no corrupted rows or missing critical fields are passed along.
+
+3. **Bias Detection & Mitigation:**  
+   We check if the model might later treat certain segments unfairly (e.g., certain volatility conditions) by looking at data distributions. If bias is detected, we apply strategies (like reweighting samples) so that every subset of the data is fairly represented.
+
+4. **Anomaly & Slice Analysis:**  
+   The data is examined for outliers or unusual market conditions. This ensures the model can handle edge cases (like sudden market crashes) and perform consistently across different market states (e.g., bull vs. bear).
+
+5. **Notifications & Logging:**  
+   At the end of each pipeline run, notifications (e.g., emails or Slack messages) let you know if the run succeeded or failed. Logging helps debug issues if something goes wrong.
+
+6. **Data Versioning (DVC):**  
+   If you need to roll back to a previous dataset version, DVC makes it easy. This ensures reproducibility: if a model performed well last month, you can reconstruct the exact data used.
+
+---
+
+## Explaining the `src` Directory (Data Pipeline)
+
+- **data_acquisition.py:** Downloads the raw stock data.
+- **data_preprocessing.py:** Cleans the data, computes returns, moving averages, and volatility.
+- **data_validation.py:** Checks that the dataset meets our quality standards (no unexpected missing columns, proper data types, continuous dates).
+- **bias_detection.py & bias_mitigation.py:** Identifies if any data segments might cause unfair model performance and fixes it by adjusting sample distributions.
+- **slice_analysis.py:** Analyzes the dataset across different dimensions (like volatility ranges) to ensure no subset is overlooked.
+- **utils/**: Contains logging and monitoring utilities that keep track of what’s happening at each pipeline stage.
+
+---
+
+## MODEL DEVELOPMENT (More Detail)
+
+After the pipeline has prepared a high-quality, bias-mitigated dataset, we move into ML development. Here’s what happens:
+
+1. **Data Loading & Splitting:**  
+   The `data_loader.py` uses the processed dataset and splits it into training (to learn patterns), validation (to tune parameters), and test sets (to unbiasedly judge final performance).
+
+2. **Model Training with Multiple Algorithms:**  
+   We train different models (e.g., Random Forest, XGBoost). By trying multiple algorithms, we increase the chances of finding one that adapts best to stock market patterns. Each model sees the training data and learns how price and volume patterns translate into future prices.
+
+3. **Hyperparameter Tuning:**  
+   The `hyperparameter_tuner.py` systematically searches for the best combination of settings (like tree depth, learning rate) that improves accuracy and stability. Instead of guessing parameters, this automated search makes the model more robust.
+
+4. **Bias Evaluation & Mitigation in ML Stage:**  
+   Even if we balanced the data, the model might learn unfair patterns. The `bias_checker.py` re-examines predictions on different slices. If bias remains, we iterate: adjust data or training procedures and retrain until the model treats all segments more fairly.
+
+5. **Validation & Model Selection:**  
+   The `model_validator.py` checks how well the model does on unseen test data. The `model_selector.py` picks the best among candidates based on accuracy, fairness, and generalization ability. This step ensures we don’t deploy a model that just got lucky on training data.
+
+6. **Experiment Tracking with MLflow:**  
+   The `experiment_tracker.py` logs runs, parameters, metrics, and generated plots in MLflow. We can revisit any experiment, see what hyperparameters were used, and compare performance over time. It’s like keeping a detailed lab notebook of every model trial.
+
+7. **Explainability (SHAP/LIME):**  
+   The `sensitivity_analyzer.py` uses these tools to show which features strongly influence predictions. This builds trust: you’ll know if the model relies heavily on certain recent volatility signals or a particular moving average.
+
+8. **Model Registry & Finalization:**  
+   Once satisfied, we push the chosen model to `model_registry.py`, storing a final version ready for deployment. No confusion about which model is going live—only the best one is registered.
+
+---
+
+## Folder Structure Overview (Key Files Only)
+
+```bash
+MLOPS_Group2/
+├── README.md
+├── requirements.txt
+├── modelrequire.txt
+├── docker-compose.yml
+├── cloudbuild.yaml
+├── config/
+│   ├── model_config.yml
+│   └── pipeline_config.yml
+├── data/
+│   ├── raw.dvc
+│   ├── processed.dvc
+│   ├── mitigated/
+│   └── stats/
+├── dags/
+│   └── stock_prediction_dag.py
+├── models/
+│   ├── bias_checker.py
+│   ├── data_loader.py
+│   ├── experiment_tracker.py
+│   ├── hyperparameter_tuner.py
+│   ├── model.py
+│   ├── model_registry.py
+│   ├── model_selector.py
+│   ├── model_validator.py
+│   ├── sensitivity_analyzer.py
+│   ├── train.py
+│   └── utils/
+│       └── logger.py
+├── model_results/
+│   ├── metrics_heatmap.png
+│   └── performance_comparison.png
+└── src/
+    ├── data_acquisition.py
+    ├── data_preprocessing.py
+    ├── data_validation.py
+    ├── bias_detection.py
+    ├── bias_mitigation.py
+    ├── slice_analysis.py
+    └── utils/
+        ├── logging_config.py
+        └── monitoring.py
+```
+
+---
+
+## To Run Model Files
+First, ensure extra model dependencies are installed:
+```bash
+pip install -r modelrequire.txt
+```
+
+Run model training:
+```bash
+python models/train.py
+```
+
+### Visualizations & Results
+- **metrics_heatmap.png & performance_comparison.png:** Compare different model variants visually.
+- **Bias Reports:** Check whether certain groups get worse predictions.
+- **SHAP/LIME Plots:** Highlight how features affect individual predictions.
+- **MLflow UI:** Run `mlflow ui` to see all experiment logs, metrics, and artifacts in a clean dashboard.
+
+---
+
+## MODEL DEPLOYMENT
+
+We use Vertex AI (AutoML) to train and build a strong model automatically. Once AutoML selects a top model, we deploy it to a Vertex AI endpoint. This endpoint provides real-time predictions at scale.
+
+### Deployment Steps
+1. Set up GCP: `gcloud auth login`, enable Vertex AI.
+2. In the `vertex_ai` directory:
+   ```bash
+   pip install -r requirement.txt
+   python predict.py
+   streamlit run app.py
+   ```
+   The Streamlit interface lets you input stock parameters and see the model’s predictions.
+
+### Monitoring & Retraining
+- **Vertex AI Monitoring:** Watches performance over time. If new market conditions emerge (data drift) or accuracy drops (model decay), alerts can trigger automatic retraining via CI/CD pipelines.
+- **Continuous Improvement:** If the model’s performance declines, the pipeline can spin up AutoML training again with the latest data, ensuring your predictions remain current and reliable.
+
+---
+
+## Full Project Flowchart
+
+```mermaid
+flowchart TD
+
+A[Start] --> B[Data Acquisition]
+B --> C[Preprocessing & Validation]
+C --> D[Bias Detection & Mitigation]
+D --> E[Anomaly & Slice Analysis]
+E --> F[Model Training & Hyperparam Tuning]
+F --> G[Model Validation & Selection]
+G --> H[Model Registry]
+H --> I[Vertex AI Deployment]
+I --> J[Monitoring & Retraining]
+J --> K[Front-End (Streamlit)]
+K --> L[End]
+```
+
+---
+
+## Tools and Technologies Used
+
+| Tool/Technology | Purpose                                        |
+|-----------------|------------------------------------------------|
+| Python 3.8+     | Data & ML scripting                           |
+| Apache Airflow   | Orchestration & Scheduling                    |
+| Docker           | Reproducible, portable environments           |
+| DVC              | Data versioning and management                |
+| MLflow           | Experiment logging & comparison               |
+| Vertex AI        | AutoML training & scalable deployment         |
+| Terraform (Opt.) | Infrastructure as Code                       |
+| Pandas, yfinance | Data acquisition & manipulation               |
+| scikit-learn, XGBoost | Core ML modeling frameworks             |
+| SHAP, LIME       | Explainability for model decisions            |
+| Fairlearn        | Bias detection & mitigation                   |
+| GCP Monitoring   | Observing performance, detecting data drift   |
+| Streamlit        | User-friendly interface for predictions       |
+
+---
+
+## Cost & Resource Estimation
+- **Local Setup:** Mainly developer time and hardware resources.
+- **Cloud (GCP Vertex AI):**
+  - Compute costs for training and serving.
+  - Storage for datasets and models.
+  - Artifact Registry for container images.
   
-| Variable Name |Role|Type|Description|
-|:--------------|:---|:---|:----------|
-|Date |Index	|Date	|The specific date of each observation; serves as the index for time-series data |
-|Open |Feature	|Continuous	|Opening price of the stock on that day |
-|High|Feature	|Continuous	|Highest price of the stock on that day |
-|Low	|Feature	|Continuous	|	Lowest price of the stock on that day |
-|Close	|Feature	|Continuous	|Closing price of the stock on that day |
-|Adj Close	|Feature	|Continuous	|Adjusted closing price, accounting for corporate actions (e.g., splits and dividends) |
-|Volume	|Feature	|Integer	|otal trading volume of the stock on that day |
+A minimal setup might cost ~$30-$60/month, growing with data volume, complexity, and usage frequency.
 
-## Data Sources 
-The data is taken from [Yahoo Finance](https://finance.yahoo.com/?guccounter=1&guce_referrer=aHR0cHM6Ly93d3cuZ29vZ2xlLmNvbS8&guce_referrer_sig=AQAAADqDhv9AiH713iygoGkr7T_2AkvprC83Wi-4S6lJRfBBgbNwhKsSZxS8uO6DTQaCHttCPJJhSvss5cNPWD1PV7mqEX1hZEdaxwXK9JdfizmtkP025bjoPF3avzduzOzvmEx7GUvZgSDZ7BRiRJfOyjTMZ1s_oAuLiy55hxFJCGBT) by using **yfinance** python library
+---
 
-## Prerequisities
-1. Docker and Docker Compose: Required to containerize and orchestrate services.
-2. Python 3.8+: Required for development and testing.
-3. Airflow 2.x: Required for scheduling and DAG monitoring.
-4. Pandas: Requires 2.2.2 version
-5. yfinance: Require 0.2.40 version
-
-## User Installation
-The steps for User installation are as follows:
-
-1. Clone Repository:
+## Conclusion
+This pipeline demonstrates a modern MLOps approach: automated data preparation, fairness checks, model experimentation, explainability, and seamless deployment with Vertex AI. Continuous monitoring and retraining keep the model relevant in changing markets. By integrating tools like Airflow, Docker, DVC, MLflow, Fairlearn, and Vertex AI, we ensure trustworthy, maintainable, and impactful stock price predictions—accessible through a Streamlit UI for effortless user interaction.
 ```
-git clone https://github.com/Venkata1106/MLOPS_Group2.git
-cd MLOPS_Group2
-```
-2. Run Docker Setup:
-```
-docker-compose up --build
-```
-3. Visit localhost:8080 login with credentials
-
-```
-user:admin 
-password:admin
-```
-
-4. Email Alerts Configuration:
-```
-Connection ID: email_default
-Connection Type: Email
-Host: smtp.gmail.com
-login: "your_email@example.com"
-password: "your_password"
-Port: 587
-Extra:
-{
-  "smtp_ssl": false,
-  "smtp_starttls": true
-}
-```
-5. Run the DAG by clicking on the play button on the right side of the window
-6. Stop docker containers
-```docker
-docker compose down
-```
-
-# Tools Used for MLOps
-
-- Docker
-- Airflow
-- DVC
-
-## Docker and Airflow
-
-The `docker-compose.yml` file is used to set up and run Apache Airflow with all necessary dependencies in Docker containers. By leveraging containerization, it ensures that our data pipeline is portable and runs consistently across various platforms, whether on Windows, macOS, or Linux. This approach simplifies deployment and minimizes compatibility issues, allowing the pipeline to run smoothly on any system.
-
-## DVC 
-
-Data Version Control (DVC) is an open-source tool designed to handle versioning and management of datasets and machine learning models. It facilitates the tracking of data and model changes over time, allowing teams to maintain consistent, reproducible workflows. By storing only metadata in the Git repository while keeping the large data files and models in cloud storage or other remote locations, DVC ensures that the version history remains lightweight and efficient. It integrates seamlessly with Git, enabling easy collaboration between teams, where code is managed with Git and data and models are versioned with DVC. This makes it an essential tool for maintaining traceability, reproducibility, and organization in machine learning projects.
-
-### Folder Structure Overview
-```
-main/
-├── .dvc/                          # DVC folder for data versioning
-├── .dockerignore                  # Docker build ignore file
-├── .gitignore                     # Git ignore file
-├── Dockerfile                     # Docker configuration
-├── README.md                      # Project overview and folder structure
-├── config/                        # Configuration files
-├── dags/                          # Airflow DAGs
-│   └── stock_prediction_dag.py    # Main DAG for stock prediction
-├── Images/                        # Saved images
-├── data/                          # Main data directory
-│   ├── raw/                       # Raw data files (e.g., AAPL.csv, AMZN.csv)
-│   ├── processed/                 # Preprocessed data (e.g., processed_AAPL.csv)
-│   ├── validated/                 # Validated data (e.g., validated_AAPL.csv)
-│   ├── analyzed/                  # Analyzed data (e.g., analyzed_processed_AAPL.csv)
-│   ├── anomalies/                 # Anomaly detection results (e.g., anomalies.json)
-│   └── mitigated/                 # Bias-mitigated data (e.g., mitigated_AAPL.csv)
-├── scripts/                       # Utility scripts
-│   ├── __init__.py                # Package init file
-│   ├── data_acquisition.py        # Data Acquisition script
-│   ├── data_preprocessing.py      # Data Preprocessing script
-│   └── ...                        # Other utility scripts
-├── tests/
-│   ├── test_data_acquisition.py   # Test Data Acquisition script
-│   ├── test_data_preprocessing.py # Test Data Preprocessing script
-│   └── ...                        # Test cases for the project under future implementations
-├── dvc.yaml                       # DVC pipeline configuration
-├── docker-compose.yml             # Docker Compose configuration
-├── requirements.txt               # Required Python dependencies
-└── smtp.env                       # SMTP configuration
-
-```
-
-
-# Data Pipeline
-
-The pipeline is designed to manage stock market data from acquisition to analysis, incorporating several stages to ensure the reliability and accuracy of predictions. Here’s an overview:
-
-![DAG](Images/DAG.jpeg)
-![Gantt](Images/Gantt.jpeg)
-
-## Scripts
-
-1. **[Data Acquisition:](https://github.com/Venkata1106/MLOPS_Group2/blob/main/scripts/data_acquisition.py)** 
-The pipeline starts by fetching historical stock data from Yahoo Finance using yfinance. This data includes core financial metrics like open, close, high, low, and volume, which serve as essential inputs for further processing.
-
-2. **[Data Preprocessing:](https://github.com/Venkata1106/MLOPS_Group2/blob/main/scripts/data_preprocessing.py)** 
-After acquisition, raw data is cleaned and preprocessed. Missing values are filled, and technical indicators such as moving averages, returns, and volatility are calculated to enrich the dataset. This stage ensures that data quality is maintained, creating a solid foundation for subsequent analysis.
-
-3. **[Data Validation:](https://github.com/Venkata1106/MLOPS_Group2/blob/main/scripts/data_validation.py)** 
-Ensuring data integrity, this stage verifies schema accuracy, consistent data types, reasonable value ranges, and continuous date records. Validation helps avoid errors in model predictions by detecting inconsistencies or incomplete data early on.
-
-4. **[Bias Detection and Mitigation:](https://github.com/Venkata1106/MLOPS_Group2/blob/main/scripts/bias_detection.py)** 
-To improve model fairness, a bias analysis checks for patterns that may lead to biased predictions. If biases are detected, mitigation techniques like winsorization (to handle outliers) and normalization are applied to balance the data distribution.
-
-5. **[Anomaly Detection:](https://github.com/Venkata1106/MLOPS_Group2/blob/main/scripts/anomaly_detection.py)** 
-This stage identifies unusual patterns in stock prices, volume, and volatility using methods like Isolation Forest. Detecting anomalies helps flag abnormal market behavior, enabling the model to account for irregularities that might affect prediction accuracy.
-
-6. **[Statistical Analysis:](https://github.com/Venkata1106/MLOPS_Group2/blob/main/scripts/data_statistics.py)** 
-To understand deeper patterns, return-based metrics, price trends, and volume analysis are conducted, offering a comprehensive view of stock performance. This stage also includes correlation studies to identify relationships between price movements and volume fluctuations.
-
-7. **Success and Failure Notification:** 
-At the end of the pipeline, a notification system sends an email summarizing the pipeline execution status. A success email confirms that the pipeline completed smoothly and shares a brief summary of key insights or metrics. In case of failure, an email is sent detailing the specific error encountered, helping to address issues promptly.
-
-8. **Output and Insights Generation:** 
-The processed, validated, and analyzed data is saved, providing actionable insights into stock trends. These insights serve as valuable inputs for predictive models, enabling investors to make data-driven decisions with a clearer understanding of market dynamics.
-
-## Tests
-
-1. **[Data Acquisition:](https://github.com/Venkata1106/MLOPS_Group2/blob/main/tests/test_data_acquisition.py)** 
-   - Tests the `fetch_stock_data` function for acquiring stock data, specifically for Apple Inc. (AAPL).
-   - Verifies that the function creates the expected output directory and file (AAPL.csv).
-   - Checks if the acquired data contains the required columns: Open, High, Low, Close, and Volume.
-   - Ensures that the fetched data is not empty.
-
-
-3. **[Data Preprocessing:](https://github.com/Venkata1106/MLOPS_Group2/blob/main/tests/test_data_preprocessing.py)**
-   - Tests the `process_and_save_all_data` function using synthetic stock data.
-   - Sets up a test environment with input and output directories, creating test data with known properties.
-   - Verifies that the preprocessing adds required columns (Returns, MA5, MA20) and maintains data integrity.
-   - Includes setup and teardown methods to create and clean up test data and directories, ensuring a clean test environment for each run.
-
-
-4. **[Data Validation:](https://github.com/Venkata1106/MLOPS_Group2/blob/main/tests/future_implementations/test_data_validation.py)**
-   - Tests the ⁠ `DataValidator` ⁠ class using both valid and invalid stock data.
-   - Checks various validation functions including schema validation, data type validation, value range validation, date continuity, and price consistency.
-   - Includes setup and teardown methods to create and clean up test data and directories.
-   - Tests the full validation process with invalid data to ensure it correctly identifies issues.
-
-
-5. **[Bias Detection:](https://github.com/Venkata1106/MLOPS_Group2/blob/main/tests/future_implementations/test_bias_detection.py)**
-   - Tests the ⁠ `BiasAnalyzer` ⁠ class using sample data with intentional NaN values and gaps.
-   - Checks for sampling bias, survivorship bias, and time period bias detection.
-   - Verifies data loading functionality and the accuracy of bias detection methods.
-   - Includes setup and teardown methods for creating and cleaning test environments.
-
-
-6. **[Bias Mitigation:](https://github.com/Venkata1106/MLOPS_Group2/blob/main/tests/future_implementations/test_bias_mitigation.py)** 
-   - Tests the ⁠ `BiasMitigator` ⁠ class using synthetic stock data with intentional biases and gaps.
-   - Verifies various bias mitigation techniques including handling missing dates, normalizing features, and adding technical indicators.
-   - ⁠Checks the full bias mitigation process, ensuring successful execution and output generation.
-   - Includes setup and teardown methods for creating and cleaning test data and directories.
-
-7. **[Data Statistics:](https://github.com/Venkata1106/MLOPS_Group2/blob/main/tests/future_implementations/test_data_statistics.py)**
-   - ⁠Tests the ⁠ `StockAnalyzer` ⁠ class using synthetic stock data.
-   - ⁠Checks various analysis functions including returns metrics, price metrics, volume metrics, and technical indicators.
-   - Tests correlation metrics calculation and the full analysis process.
-   - ⁠Includes class-level setup and teardown methods to create and clean up test data and output directories.
-
-8. **[Anomaly Detection:](https://github.com/Venkata1106/MLOPS_Group2/blob/main/tests/future_implementations/test_anomaly_detection.py)** 
-   - Tests the ⁠ `AnomalyDetector` ⁠ class using synthetic stock data with known anomalies.
-   - ⁠Verifies feature calculation, anomaly detection process, and output generation.
-   - Checks the convenience function ⁠ `run_anomaly_detection` ⁠ and error handling for invalid inputs.
-   - Includes methods to create test data with price and volume anomalies.
