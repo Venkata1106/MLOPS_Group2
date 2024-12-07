@@ -9,7 +9,7 @@
 
 ## Video Link
 [Click Here to Watch the Project Walkthrough Video](#)  
-*(Replace `#` with the actual video URL.)*
+
 
 ---
 
