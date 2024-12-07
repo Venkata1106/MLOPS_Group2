@@ -1,7 +1,7 @@
 # Stock Price Prediction
 
 # Video Link
-The full video right from creating the project till data drift and model decay is the following:
+The video for only model deployment on fresh environment is the following:
 
 https://tinyurl.com/3tmrfadv 
 
