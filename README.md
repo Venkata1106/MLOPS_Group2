@@ -8,7 +8,7 @@
 ---
 
 ## Video Link
-[Click Here to Watch the Project Walkthrough Video](https://tinyurl.com/3tmrfadv)  
+[Click Here to Watch the Model Deployment Walkthrough Video](https://tinyurl.com/3tmrfadv)  
 
 
 ---
