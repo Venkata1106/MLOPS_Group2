@@ -8,8 +8,8 @@
 ---
 
 ## Video Link
-[Click Here to Watch the Project Walkthrough Video](#)  
-*(Replace `#` with the actual video URL.)*
+[Click Here to Watch the Project Walkthrough Video](https://tinyurl.com/3tmrfadv)  
+
 
 ---
 
@@ -332,7 +332,7 @@ With Vertex AI (AutoML), we let GCP automatically train and select a top model. 
 
 ## Full Project Flowchart
 
-```mermaid
+```
 flowchart TD
 
 A[Start] --> B[Data Acquisition]
