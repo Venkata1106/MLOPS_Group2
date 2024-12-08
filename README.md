@@ -17,6 +17,7 @@
         <img height=100 src="https://cdn.svgporn.com/logos/airflow-icon.svg" alt="Airflow" title="Airflow" hspace=20 />  
         <img height=100 src="https://cdn.svgporn.com/logos/docker-icon.svg" alt="Docker" title="Docker" hspace=20 />
         <img height=100 src="https://cdn.svgporn.com/logos/google-cloud.svg" alt="Google Cloud Platform" title="Google Cloud Platform" hspace=20 /> 
+	<img height=100 src="https://lh3.googleusercontent.com/UiNooY4LUgW_oTvpsNhPpQzsstV5W8F7rYgxgGBD85cWJoLmrOzhVs_ksK_vgx40SHs7jCqkTkCk=e14-rj-sc0xffffff-h130-w32" alt="Vertex AI" title="Vertex AI" width="100" hspace=20 />
          
   </a>	
 </p>
@@ -45,7 +46,7 @@ These additional features help the model understand trends and patterns in stock
 ---
 
 ## Prerequisites
-- **Python 3.8+**
+- **Python 3.9**
 - **Docker & Docker Compose** for reproducible environments
 - **Apache Airflow 2.x** for pipeline orchestration
 - **DVC** (Data Version Control) to track data changes
@@ -82,6 +83,8 @@ These additional features help the model understand trends and patterns in stock
    ```bash
    dvc pull
    ```
+![Dag image](Images/DAG.jpeg)
+![Gantt image](Images/Gantt.jpeg)
    Ensures correct version of data is used.
 
 
@@ -106,6 +109,8 @@ These additional features help the model understand trends and patterns in stock
 6. **Data Versioning (DVC):**  
    Tracks data changes, enabling you to revert to previous data states and ensure complete reproducibility.
 
+
+   
 ---
 
 ## Explaining the `src` Directory (Data Pipeline)
@@ -341,22 +346,27 @@ With Vertex AI (AutoML), we let GCP automatically train and select a top model. 
 ---
 
 ## Full Project Flowchart
+### Data Pipeline
+<p align="center">
+  <br />
+  <img src="Images/Data Pipeline.png" alt="Data pipeline image" title="Data Pipeline" width="60%" style="border: 2px solid #000; padding: 5px; max-width: 100%; height: auto;" />
+</p>
 
-```
-flowchart TD
+### Model Development Pipeline
+<p align="center">
+  <br />
+  <img src="Images/Model development pipeline.png" alt="Model Development pipeline image" title="Model Development Pipeline" width="60%" style="border: 2px solid #000; padding: 5px; max-width: 100%; height: auto;" />
+</p>
+<br />
 
-A[Start] --> B[Data Acquisition]
-B --> C[Preprocessing & Validation]
-C --> D[Bias Detection & Mitigation]
-D --> E[Anomaly & Slice Analysis]
-E --> F[Model Training & Hyperparam Tuning]
-F --> G[Model Validation & Selection]
-G --> H[Model Registry]
-H --> I[Vertex AI Deployment]
-I --> J[Monitoring & Retraining]
-J --> K[Front-End (Streamlit)]
-K --> L[End]
-```
+### Model deployment pipeline 
+<p align ="center">	
+  <img src="Images/Model deployment pipeline.png" alt="Model deployment pipeline image" title="Model Deployment Pipeline" width="45%" style="border: 2px solid #000; padding: 5px; max-width: 100%; height: auto;" />
+</p>
+
+
+
+
 
 ---
 
@@ -364,7 +374,7 @@ K --> L[End]
 
 | Tool/Technology | Purpose                                        |
 |-----------------|------------------------------------------------|
-| Python 3.8+     | Data & ML scripting                           |
+| Python 3.9       | Data & ML scripting                           |
 | Apache Airflow   | Orchestration & Scheduling                    |
 | Docker           | Reproducible, portable environments           |
 | DVC              | Data versioning and reproducibility           |
