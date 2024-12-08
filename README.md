@@ -10,7 +10,17 @@
 ## Video Link
 [Click Here to Watch the Model Deployment Walkthrough Video](https://tinyurl.com/3tmrfadv)  
 
-
+<p align="center">  
+    <br>
+	<a href="#">
+	      <img src="https://raw.githubusercontent.com/Thomas-George-T/Thomas-George-T/master/assets/python.svg" alt="Python" title="Python" width ="120" />
+        <img height=100 src="https://cdn.svgporn.com/logos/airflow-icon.svg" alt="Airflow" title="Airflow" hspace=20 />  
+        <img height=100 src="https://cdn.svgporn.com/logos/docker-icon.svg" alt="Docker" title="Docker" hspace=20 />
+        <img height=100 src="https://cdn.svgporn.com/logos/google-cloud.svg" alt="Google Cloud Platform" title="Google Cloud Platform" hspace=20 /> 
+         
+  </a>	
+</p>
+<br>
 ---
 
 ## Introduction
