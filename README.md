@@ -349,19 +349,19 @@ With Vertex AI (AutoML), we let GCP automatically train and select a top model. 
 ### Data Pipeline
 <p align="center">
   <br />
-  <img src="Images/Data Pipeline.png" alt="Data pipeline image" title="Data Pipeline" width="60%" style="border: 2px solid #000; padding: 5px; max-width: 100%; height: auto;" />
+  <img src="Images/Data Pipeline.png" alt="Data pipeline image" title="Data Pipeline" width="85%" style="border: 2px solid #000; padding: 5px; max-width: 100%; height: auto;" />
 </p>
 
 ### Model Development Pipeline
 <p align="center">
   <br />
-  <img src="Images/Model development pipeline.png" alt="Model Development pipeline image" title="Model Development Pipeline" width="60%" style="border: 2px solid #000; padding: 5px; max-width: 100%; height: auto;" />
+  <img src="Images/Model development pipeline.png" alt="Model Development pipeline image" title="Model Development Pipeline" width="85%" style="border: 2px solid #000; padding: 5px; max-width: 100%; height: auto;" />
 </p>
 <br />
 
 ### Model deployment pipeline 
 <p align ="center">	
-  <img src="Images/Model deployment pipeline.png" alt="Model deployment pipeline image" title="Model Deployment Pipeline" width="45%" style="border: 2px solid #000; padding: 5px; max-width: 100%; height: auto;" />
+  <img src="Images/Model deployment pipeline.png" alt="Model deployment pipeline image" title="Model Deployment Pipeline" width="85%" style="border: 2px solid #000; padding: 5px; max-width: 100%; height: auto;" />
 </p>
 
 
