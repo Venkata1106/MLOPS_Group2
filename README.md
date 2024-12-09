@@ -124,55 +124,6 @@ These additional features help the model understand trends and patterns in stock
 
 ---
 
-### MODEL DEVELOPMENT 
-
-After the data pipeline provides a refined, bias-mitigated dataset, our focus shifts to **Model Development**. Here, we transform prepared data into a well-performing, fair, and interpretable predictive model. This phase is iterative, involving training, evaluation, fine-tuning, bias correction, explainability analysis, and thorough record-keeping.
-
-**Key Objectives:**
-- Convert preprocessed data into model-ready formats.
-- Explore multiple ML algorithms to find a strong performer.
-- Fine-tune hyperparameters to balance accuracy and robustness.
-- Continuously check and rectify biases to ensure fairness.
-- Validate the final model to ensure reliable real-world performance.
-- Log every experiment (with parameters, metrics, and results) for transparency and reproducibility.
-- Understand why the model makes certain predictions using explainability tools.
-- Store the chosen model in a registry for easy retrieval and deployment.
-
-**Detailed Steps**
-
-1. **Data Loading & Splitting (`data_loader.py`):**  
-   This script retrieves the processed dataset and splits it into training, validation, and test subsets.  
-   - **Training Set:** Teaches the model patterns and trends.  
-   - **Validation Set:** Helps tune hyperparameters and compare different models without overfitting.  
-   - **Test Set:** Provides a final, unbiased measure of performance.  
-   
-   By segregating data this way, we maintain an honest benchmark and ensure that improvements in model performance are genuine.
-
-2. **Model Training (`model.py`):**  
-   Here we train multiple models (e.g., Random Forest, XGBoost). Trying diverse algorithms increases the chance of finding one well-suited to the market’s complexity. Some models excel in handling noise, while others can uncover subtle patterns. Training multiple candidates sets the stage for a fair, data-driven selection process.
-
-3. **Hyperparameter Tuning (`hyperparameter_tuner.py`):**  
-   Optimal hyperparameters often distinguish a good model from a great one. This script systematically explores parameter combinations—like the number of trees in a forest or the learning rate for a boosting model. The result is a model that’s both more accurate and more stable over time, reducing the risk of overfitting.
-
-4. **Bias Checking (`bias_checker.py`):**  
-   Fairness is not guaranteed by a single mitigation step. After training, we re-check the model’s predictions across various slices (e.g., volatility ranges) to detect residual bias. If certain subsets perform poorly, we re-tune or re-sample until fairness metrics improve, ensuring equitable treatment across all data segments.
-
-5. **Model Validation & Selection (`model_validator.py` & `model_selector.py`):**  
-   - **Model Validator:** Uses the test set to provide unbiased performance metrics (e.g., MSE, MAE).  
-   - **Model Selector:** Ranks candidates by accuracy, fairness, and stability, choosing the model that best meets our criteria.  
-   
-   This two-step approach prevents deploying a model that merely “seems good” on training data but fails on unseen scenarios.
-
-6. **Experiment Tracking (`experiment_tracker.py`):**  
-   We leverage MLflow to log each run’s parameters, metrics, and artifacts. Historical records allow us to revisit past successes and failures, identify what worked well, and justify final choices to stakeholders. This ensures no valuable insight is lost during model iteration.
-
-7. **Explainability (`sensitivity_analyzer.py`):**  
-   Tools like SHAP and LIME clarify why the model makes certain predictions, revealing feature importance and dependencies. This transparency helps stakeholders trust the model and guides future improvements—if a model relies too heavily on a volatile feature, we can adjust the feature set or parameter tuning strategies.
-
-8. **Model Registry (`model_registry.py`):**  
-   Once the best model emerges, we store it in a registry—an authoritative record of the chosen model version. This eliminates confusion over which model is live, simplifies rollbacks if needed, and supports CI/CD pipelines for continuous improvement and reliable deployment.
-
----
 
 ### MODEL DEVELOPMENT 
 
