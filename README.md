@@ -83,8 +83,8 @@ These additional features help the model understand trends and patterns in stock
    ```bash
    dvc pull
    ```
-![Dag image](Images/DAG.jpeg)
-![Gantt image](Images/Gantt.jpeg)
+![Dag image](Images/DAG_1.png)
+![Gantt image](Images/Gantt_1.png)
    Ensures correct version of data is used.
 
 
